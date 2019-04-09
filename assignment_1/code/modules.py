@@ -117,14 +117,12 @@ class SoftMaxModule(object):
     Implement backward pass of the module.
     """
 
-    print(f"Shape of dout: {dout.shape}")
-    tmp1 = dout.T @ dout
-    print(f"tmp1 shape: {tmp1.shape}")
-
-    #print(f"tmp2 shape: {tmp2.shape}")
-    #dx = dout @ (tmp1 - tmp2)
-    #print(f"Shape dx: {dx.shape}")
-    dx = 0
+    tmp_shape = self.x.shape
+    print(tmp_shape)
+    tmp1 = np.zeros((tmp_shape[0], tmp_shape[1], tmp_shape[1]))
+    np.einsum('ijj->ij', tmp1)[:] = self.x
+    tmp2 = np.einsum('ij, ik', self.x, self.x)
+    dx = np.einsum('ij, ijk->ij', dout, (tmp1 - tmp2))
     return dx
 
 class CrossEntropyModule(object):
