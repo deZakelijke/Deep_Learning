@@ -74,3 +74,10 @@ class MLP(object):
             dout = layer.backward(dout)
   
         return dout
+
+
+    def update_weights(self, learning_rate):
+        for layer in self.layers:
+            if type(layer) is LinearModule:
+                layer.update_weights(learning_rate)
+

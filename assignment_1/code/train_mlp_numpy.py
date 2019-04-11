@@ -15,8 +15,8 @@ import cifar10_utils
 
 # Default constants
 DNN_HIDDEN_UNITS_DEFAULT = '100'
-LEARNING_RATE_DEFAULT = 2e-3
-MAX_STEPS_DEFAULT = 1500
+LEARNING_RATE_DEFAULT = 2e-5
+MAX_STEPS_DEFAULT = 500
 BATCH_SIZE_DEFAULT = 200
 EVAL_FREQ_DEFAULT = 100
 
@@ -78,16 +78,19 @@ def train():
     n_inputs = 3*32*32
     n_classes = 10
     model = MLP(n_inputs, dnn_hidden_units, n_classes)
+    loss_function = CrossEntropyModule()
 
     for i in range(FLAGS.max_steps):
         batch = cifar10['train'].next_batch(FLAGS.batch_size)
-        b_s = batch[0].shape)
-        batch[0] #TODO
-        print(batch[1].shape)
-        #predictions = MLP.forward(batch)
-        break
-        # loss
-        # backwards
+        reshaped_input = batch[0].reshape(batch[0].shape[0], n_inputs)
+        labels = batch[1]
+
+        predictions = model.forward(reshaped_input)
+        loss = loss_function.forward(predictions, labels)
+        print(loss)
+        loss_backward = loss_function.backward(predictions, labels)
+        model.backward(loss_backward)
+        model.update_weights(FLAGS.learning_rate)
     # evaluate when eval_freq
 
 def print_flags():
