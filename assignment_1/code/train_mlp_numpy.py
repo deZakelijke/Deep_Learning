@@ -16,7 +16,7 @@ import cifar10_utils
 # Default constants
 DNN_HIDDEN_UNITS_DEFAULT = '100'
 LEARNING_RATE_DEFAULT = 2e-3
-MAX_STEPS_DEFAULT = 500
+MAX_STEPS_DEFAULT = 1500
 BATCH_SIZE_DEFAULT = 200
 EVAL_FREQ_DEFAULT = 100
 
@@ -39,8 +39,6 @@ def accuracy(predictions, targets):
       accuracy: scalar float, the accuracy of predictions,
                 i.e. the average correct predictions over the whole batch
     
-    TODO:
-    Implement accuracy computation.
     """
     maximums = np.array((predictions.T == predictions.max(axis=1))).T.astype(float) 
     correct = maximums * targets
@@ -88,8 +86,23 @@ def train():
         model.update_weights(FLAGS.learning_rate)
 
         if not i % FLAGS.eval_freq:
+            test_batch = cifar10['test'].next_batch(FLAGS.batch_size)
+            reshaped_input = test_batch[0].reshape(test_batch[0].shape[0], n_inputs)
+            targets = test_batch[1]
+
+            predictions = model.forward(reshaped_input)
+
             acc = accuracy(predictions, targets)
             print(f"Epoch: {i}, accuracy: {acc * 100}%")
+
+
+    test_batch = cifar10['test'].next_batch(FLAGS.batch_size)
+    reshaped_input = test_batch[0].reshape(test_batch[0].shape[0], n_inputs)
+    targets = test_batch[1]
+    predictions = model.forward(reshaped_input)
+    acc = accuracy(predictions, targets)
+    print(f"Epoch: {FLAGS.max_steps}, accuracy: {acc * 100}%")
+
 
 
 def print_flags():
