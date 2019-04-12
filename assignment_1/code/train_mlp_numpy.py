@@ -15,7 +15,7 @@ import cifar10_utils
 
 # Default constants
 DNN_HIDDEN_UNITS_DEFAULT = '100'
-LEARNING_RATE_DEFAULT = 2e-5
+LEARNING_RATE_DEFAULT = 2e-3
 MAX_STEPS_DEFAULT = 500
 BATCH_SIZE_DEFAULT = 200
 EVAL_FREQ_DEFAULT = 100
@@ -42,14 +42,9 @@ def accuracy(predictions, targets):
     TODO:
     Implement accuracy computation.
     """
-
-    ########################
-    # PUT YOUR CODE HERE  #
-    #######################
-    raise NotImplementedError
-    ########################
-    # END OF YOUR CODE    #
-    #######################
+    maximums = np.array((predictions.T == predictions.max(axis=1))).T.astype(float) 
+    correct = maximums * targets
+    accuracy = correct.sum() / correct.shape[0]
 
     return accuracy
 
@@ -83,15 +78,19 @@ def train():
     for i in range(FLAGS.max_steps):
         batch = cifar10['train'].next_batch(FLAGS.batch_size)
         reshaped_input = batch[0].reshape(batch[0].shape[0], n_inputs)
-        labels = batch[1]
+        targets = batch[1]
 
         predictions = model.forward(reshaped_input)
-        loss = loss_function.forward(predictions, labels)
-        print(loss)
-        loss_backward = loss_function.backward(predictions, labels)
+        loss = loss_function.forward(predictions, targets)
+        #print(loss)
+        loss_backward = loss_function.backward(predictions, targets)
         model.backward(loss_backward)
         model.update_weights(FLAGS.learning_rate)
-    # evaluate when eval_freq
+
+        if not i % FLAGS.eval_freq:
+            acc = accuracy(predictions, targets)
+            print(f"Epoch: {i}, accuracy: {acc * 100}%")
+
 
 def print_flags():
     """

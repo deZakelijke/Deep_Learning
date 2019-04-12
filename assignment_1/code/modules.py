@@ -166,4 +166,5 @@ class CrossEntropyModule(object):
     Implement backward pass of the module.
     """
     dx = -y / (x + 1e-9)
+    dx /= y.shape[0]
     return dx
