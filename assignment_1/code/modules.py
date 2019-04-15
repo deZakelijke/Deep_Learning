@@ -150,6 +150,7 @@ class CrossEntropyModule(object):
     self.x = x
     self.y = y
     out = - np.sum(y * np.log(x + 1e-9))
+    out /= x.shape[0]
     return out
 
   def backward(self, x, y):

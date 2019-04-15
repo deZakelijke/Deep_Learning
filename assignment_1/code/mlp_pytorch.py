@@ -5,6 +5,7 @@ You should fill in code into indicated sections.
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+from torch import nn
 
 class MLP(nn.Module):
   """
@@ -30,14 +31,28 @@ class MLP(nn.Module):
     TODO:
     Implement initialization of the network.
     """
+    self.layers = []
+    for i in range(len(n_hidde)):
+        if i == 0:
+            new_layer = nn.Sequential(
+                    nn.Linear(n_inputs, n_hidden[i]),
+                    nn.ReLU()
+                    )
+        else:
+            new_layers = nn.Sequential(
+                    nn.Linear(n_hidden[i - 1], n_hidden[i]),
+                    nn.ReLU()
+                    )
+        self.layers.append(new_layer)
 
-    ########################
-    # PUT YOUR CODE HERE  #
-    #######################
-    raise NotImplementedError
-    ########################
-    # END OF YOUR CODE    #
-    #######################
+    if not self.layers:
+        self.layers.append(nn.Linear(n_inputs, n_classes))
+    else:
+        self.layers.append(nn.Linear(n_hidden[-1], n_classes))
+
+    self.layers.append(nn.Softmax())
+    self.layers = nn.Sequential(*self.layers)
+
 
   def forward(self, x):
     """
@@ -53,12 +68,7 @@ class MLP(nn.Module):
     Implement forward pass of the network.
     """
 
-    ########################
-    # PUT YOUR CODE HERE  #
-    #######################
-    raise NotImplementedError
-    ########################
-    # END OF YOUR CODE    #
-    #######################
-
+    out = self.layers[0](x)
+    for layer in self.layers[1:]:
+        out = layer(out)
     return out
