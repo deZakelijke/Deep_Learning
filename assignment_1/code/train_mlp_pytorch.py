@@ -71,7 +71,7 @@ def train():
     n_inputs = 3*32*32
     n_classes = 10
     model = MLP(n_inputs, dnn_hidden_units, n_classes)
-    optimizer = Optimizer.Adam(model.parameters(), lr=FLAGS.learning_rate)
+    optimizer = optim.Adam(model.parameters(), lr=FLAGS.learning_rate)
     loss_function = nn.CrossEntropyLoss()
 
 

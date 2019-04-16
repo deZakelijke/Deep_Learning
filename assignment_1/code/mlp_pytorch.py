@@ -31,7 +31,8 @@ class MLP(nn.Module):
     TODO:
     Implement initialization of the network.
     """
-    self.layers = []
+    super(MLP, self).__init__()
+    layers = []
     for i in range(len(n_hidden)):
         if i == 0:
             new_layer = nn.Sequential(
@@ -39,19 +40,20 @@ class MLP(nn.Module):
                     nn.ReLU()
                     )
         else:
-            new_layers = nn.Sequential(
+            new_layer = nn.Sequential(
                     nn.Linear(n_hidden[i - 1], n_hidden[i]),
                     nn.ReLU()
                     )
-        self.layers.append(new_layer)
+        layers.append(new_layer)
 
-    if not self.layers:
-        self.layers.append(nn.Linear(n_inputs, n_classes))
+    if not layers:
+        layers.append(nn.Linear(n_inputs, n_classes))
     else:
-        self.layers.append(nn.Linear(n_hidden[-1], n_classes))
+        layers.append(nn.Linear(n_hidden[-1], n_classes))
 
-    self.layers.append(nn.Softmax())
-    self.layers = nn.Sequential(*self.layers)
+    layers.append(nn.Softmax())
+    print(layers)
+    self.layers = nn.Sequential(*layers)
 
 
   def forward(self, x):

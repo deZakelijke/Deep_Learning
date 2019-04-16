@@ -56,7 +56,7 @@ class CustomBatchNormAutograd(nn.Module):
     assert input.shape[1] == self.n_neurons
 
     self.mean = torch.mean(input, 0, keepdim=True)
-    self.var  = torch.var(input, 0, keepdim=True)
+    self.var  = torch.var(input, 0, keepdim=True, unbiased=False)
     x_hat = torch.div(input - self.mean, torch.sqrt(self.var - self.eps))
     out = self.gamma * x_hat + self.beta
        
@@ -105,14 +105,12 @@ class CustomBatchNormManualFunction(torch.autograd.Function):
       for the backward pass. Do not store tensors which are unnecessary for the backward pass to save memory!
       For the case that you make use of torch.var be aware that the flag unbiased=False should be set.
     """
-
-    ########################
-    # PUT YOUR CODE HERE  #
-    #######################
-    raise NotImplementedError
-    ########################
-    # END OF YOUR CODE    #
-    #######################
+    mean = torch.mean(input, 0, keepdim=True)
+    var  = torch.var(input, 0, keepdim=True, unbiased=False)
+    sqrt_eps_var = torch.sqrt(var - eps)
+    x_hat = torch.div(input - mean, sqrt_eps_var)
+    out = gamma * x_hat + beta
+    ctx.save_for_backward(mean, var, sqrt_eps_var, gamma, beta)
 
     return out
 
@@ -134,15 +132,10 @@ class CustomBatchNormManualFunction(torch.autograd.Function):
       inputs to None. This should be decided dynamically.
     """
 
-    ########################
-    # PUT YOUR CODE HERE  #
-    #######################
-    raise NotImplementedError
-    ########################
-    # END OF YOUR CODE    #
-    #######################
+    grad_input = 0
+    grad_gamma = 0
+    grad_beta = 0
 
-    # return gradients of the three tensor inputs and None for the constant eps
     return grad_input, grad_gamma, grad_beta, None
 
 
