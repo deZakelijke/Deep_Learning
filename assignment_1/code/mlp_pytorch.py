@@ -32,7 +32,7 @@ class MLP(nn.Module):
     Implement initialization of the network.
     """
     self.layers = []
-    for i in range(len(n_hidde)):
+    for i in range(len(n_hidden)):
         if i == 0:
             new_layer = nn.Sequential(
                     nn.Linear(n_inputs, n_hidden[i]),

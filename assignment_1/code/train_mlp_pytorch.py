@@ -10,7 +10,7 @@ import argparse
 import numpy as np
 import os
 from mlp_pytorch import MLP
-from torch import nn, optimizer
+from torch import nn, optim
 import cifar10_utils
 
 # Default constants
@@ -44,7 +44,7 @@ def accuracy(predictions, targets):
     """
     maximums = (predictions == predictions.max(1).reshape(predictions.shape[0], 1)).float()
     correct = maximumx * targets
-    accuracy = correct.sum() / correct.shape[0])
+    accuracy = correct.sum() / correct.shape[0]
 
     return accuracy
 
