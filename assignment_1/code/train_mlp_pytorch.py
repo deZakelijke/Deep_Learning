@@ -77,6 +77,8 @@ def train():
     optimizer = optim.Adam(model.parameters(), lr=FLAGS.learning_rate)
     loss_function = nn.CrossEntropyLoss()
 
+    train_accuracies = []
+    test_accuracies = []
 
     for i in range(FLAGS.max_steps):
         batch = cifar10['train'].next_batch(FLAGS.batch_size)
@@ -91,16 +93,37 @@ def train():
         optimizer.step()
 
         if not i % FLAGS.eval_freq:
-            test_batch = cifar10['test'].next_batch(FLAGS.batch_size)
+            train_acc = accuracy(predictions, targets)
+            train_accuracies.append(train_acc)
+
+            test_batch = cifar10['test'].next_batch(FLAGS.batch_size * 5)
             reshaped_input = test_batch[0].reshape(test_batch[0].shape[0], n_inputs)
             torch_input = torch.from_numpy(reshaped_input).float()
             targets = torch.from_numpy(test_batch[1]).long()
             
             predictions = model(torch_input)
 
-            acc = accuracy(predictions, targets)
+            test_acc = accuracy(predictions, targets)
+            test_accuracies.append(test_acc)
+
             print(f"Epoch: {i}, accuracy: {(acc * 100):.1f}%")
 
+    train_acc = accuracy(predictions, targets)
+    train_accuracies.append(train_acc)
+
+    test_batch = cifar10['test'].next_batch(FLAGS.batch_size)
+    reshaped_input = test_batch[0].reshape(test_batch[0].shape[0], n_inputs)
+    targets = test_batch[1]
+    predictions = model.forward(reshaped_input)
+    test_acc = accuracy(predictions, targets)
+    test_accuracies.append(test_acc)
+    print(f"Epoch: {FLAGS.max_steps}, accuracy: {(test_acc * 100):.1f}%")
+
+    train_plot = plt.plot(train_accuracies, label="Train accuracy")
+    test_plot = plt.plot(test_accuracies, label="Test accuracy")
+    plt.legend()
+    plt.title(f"Accuracies of Pytorch MLP")
+    plt.savefig("Accuracy_plot_mlp_pytorch.pdf", bbox_inches="tight")
 
 
 def print_flags():

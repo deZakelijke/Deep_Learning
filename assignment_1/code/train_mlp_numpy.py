@@ -9,6 +9,7 @@ from __future__ import print_function
 import argparse
 import numpy as np
 import os
+import matplotlib.pyplot as plt
 from mlp_numpy import MLP
 from modules import CrossEntropyModule
 import cifar10_utils
@@ -73,6 +74,9 @@ def train():
     model = MLP(n_inputs, dnn_hidden_units, n_classes)
     loss_function = CrossEntropyModule()
 
+    train_accuracies = []
+    test_accuracies = []
+
     for i in range(FLAGS.max_steps):
         batch = cifar10['train'].next_batch(FLAGS.batch_size)
         reshaped_input = batch[0].reshape(batch[0].shape[0], n_inputs)
@@ -80,29 +84,41 @@ def train():
 
         predictions = model.forward(reshaped_input)
         loss = loss_function.forward(predictions, targets)
-        #print(loss)
         loss_backward = loss_function.backward(predictions, targets)
         model.backward(loss_backward)
         model.update_weights(FLAGS.learning_rate)
 
         if not i % FLAGS.eval_freq:
-            test_batch = cifar10['test'].next_batch(FLAGS.batch_size)
+            train_acc = accuracy(predictions, targets)
+            train_accuracies.append(train_acc)
+
+            test_batch = cifar10['test'].next_batch(FLAGS.batch_size * 5)
             reshaped_input = test_batch[0].reshape(test_batch[0].shape[0], n_inputs)
             targets = test_batch[1]
 
             predictions = model.forward(reshaped_input)
 
-            acc = accuracy(predictions, targets)
-            print(f"Epoch: {i}, accuracy: {acc * 100}%")
+            test_acc = accuracy(predictions, targets)
+            test_accuracies.append(test_acc)
+            print(f"Epoch: {i}, accuracy: {test_acc * 100}%")
 
+
+    train_acc = accuracy(predictions, targets)
+    train_accuracies.append(train_acc)
 
     test_batch = cifar10['test'].next_batch(FLAGS.batch_size)
     reshaped_input = test_batch[0].reshape(test_batch[0].shape[0], n_inputs)
     targets = test_batch[1]
     predictions = model.forward(reshaped_input)
-    acc = accuracy(predictions, targets)
-    print(f"Epoch: {FLAGS.max_steps}, accuracy: {acc * 100}%")
+    test_acc = accuracy(predictions, targets)
+    test_accuracies.append(test_acc)
+    print(f"Epoch: {FLAGS.max_steps}, accuracy: {test_acc * 100}%")
 
+    train_plot = plt.plot(train_accuracies, label="Train accuracy")
+    test_plot = plt.plot(test_accuracies, label="Test accuracy")
+    plt.legend()
+    plt.title(f"Accuracies of Numpy MLP")
+    plt.savefig("Accuracy_plot_mlp_numpy.pdf", bbox_inches="tight")
 
 
 def print_flags():
