@@ -25,14 +25,53 @@ class ConvNet(nn.Module):
     TODO:
     Implement initialization of the network.
     """
+    super(ConvNet, self)__init__()
 
-    ########################
-    # PUT YOUR CODE HERE  #
-    #######################
-    raise NotImplementedError
-    ########################
-    # END OF YOUR CODE    #
-    #######################
+    self.modules = []
+
+    self.modules.append(nn.Sequential(
+        nn.Conv2D(n_channels, 64, kernel_size=3, stride=1, padding=1),
+        nn.ReLU(),
+        nn.MaxPool2d(3, stride=2, padding=1)
+    ))
+
+    self.modules.append(nn.Sequential(
+        nn.Conv2D(64, 128, kernel_size=3, stride=1, padding=1),
+        nn.ReLU(),
+        nn.MaxPool2d(3, stride=2, padding=1)
+    ))
+
+    self.modules.append(nn.Sequential(
+        nn.Conv2D(128, 256, kernel_size=3, stride=1, padding=1),
+        nn.ReLU(),
+        nn.Conv2D(256, 256, kernel_size=3, stride=1, padding=1),
+        nn.ReLU(),
+        nn.MaxPool2d(3, stride=2, padding=1)
+    ))
+
+    self.modules.append(nn.Sequential(
+        nn.Conv2D(256, 512, kernel_size=3, stride=1, padding=1),
+        nn.ReLU(),
+        nn.Conv2D(512, 512, kernel_size=3, stride=1, padding=1),
+        nn.ReLU(),
+        nn.MaxPool2d(3, stride=2, padding=1)
+    ))
+
+    self.modules.append(nn.Sequential(
+        nn.Conv2D(512, 512, kernel_size=3, stride=1, padding=1),
+        nn.ReLU(),
+        nn.Conv2D(512, 512, kernel_size=3, stride=1, padding=1),
+        nn.ReLU(),
+        nn.MaxPool2d(3, stride=2, padding=1),
+        nn.AvgPool2d(1, stride=1, padding=0)
+    ))
+
+    self.modules.append(nn.Sequential(
+        nn.Linear(512, 10),
+        nn.Softmax(dim=1)
+    ))
+
+    self.modules = nn.Sequential(*self.modules)
 
   def forward(self, x):
     """
@@ -48,12 +87,6 @@ class ConvNet(nn.Module):
     Implement forward pass of the network.
     """
 
-    ########################
-    # PUT YOUR CODE HERE  #
-    #######################
-    raise NotImplementedError
-    ########################
-    # END OF YOUR CODE    #
-    #######################
+    out = self.modules(x)
 
     return out
