@@ -78,10 +78,11 @@ def train():
     for i in range(FLAGS.max_steps):
         batch = cifar10['train'].next_batch(FLAGS.batch_size)
         reshaped_input = batch[0].reshape(batch[0].shape[0], n_inputs)
-        targets = batch[1]
+        torch_input = torch.from_numpy(reshaped_input)
+        targets = torch.from_numpy(batch[1])
 
         model.zero_grad()
-        predictions = model(reshaped_input)
+        predictions = model(torch_input)
         loss = loss_function(predictions, targets)
         loss.backward()
         optimizer.step()
@@ -89,9 +90,10 @@ def train():
         if not i % FLAGS.eval_freq:
             test_batch = cifar10['test'].next_batch(FLAGS.batch_size)
             reshaped_input = test_batch[0].reshape(test_batch[0].shape[0], n_inputs)
-            targets = test_batch[1]
+            torch_input = torch.from_numpy(reshaped_input)
+            targets = torch.from_numpy(test_batch[1])
             
-            predictions = model(reshaped_input)
+            predictions = model(torch_input)
 
             acc = accuracy(predictions, targets)
             print(f"Epoch: {i}, accuracy: {acc * 100}%")
