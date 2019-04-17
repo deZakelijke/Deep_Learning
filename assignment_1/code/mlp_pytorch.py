@@ -51,8 +51,7 @@ class MLP(nn.Module):
     else:
         layers.append(nn.Linear(n_hidden[-1], n_classes))
 
-    layers.append(nn.Softmax())
-    print(layers)
+    layers.append(nn.Softmax(dim=1))
     self.layers = nn.Sequential(*layers)
 
 

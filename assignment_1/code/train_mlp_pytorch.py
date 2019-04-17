@@ -9,6 +9,7 @@ from __future__ import print_function
 import argparse
 import numpy as np
 import os
+import torch
 from mlp_pytorch import MLP
 from torch import nn, optim
 import cifar10_utils
@@ -68,6 +69,8 @@ def train():
     else:
         dnn_hidden_units = []
 
+    cifar10 = cifar10_utils.get_cifar10(FLAGS.data_dir)
+
     n_inputs = 3*32*32
     n_classes = 10
     model = MLP(n_inputs, dnn_hidden_units, n_classes)
@@ -78,8 +81,8 @@ def train():
     for i in range(FLAGS.max_steps):
         batch = cifar10['train'].next_batch(FLAGS.batch_size)
         reshaped_input = batch[0].reshape(batch[0].shape[0], n_inputs)
-        torch_input = torch.from_numpy(reshaped_input)
-        targets = torch.from_numpy(batch[1])
+        torch_input = torch.from_numpy(reshaped_input).float()
+        targets = torch.from_numpy(batch[1]).long()
 
         model.zero_grad()
         predictions = model(torch_input)
@@ -90,8 +93,8 @@ def train():
         if not i % FLAGS.eval_freq:
             test_batch = cifar10['test'].next_batch(FLAGS.batch_size)
             reshaped_input = test_batch[0].reshape(test_batch[0].shape[0], n_inputs)
-            torch_input = torch.from_numpy(reshaped_input)
-            targets = torch.from_numpy(test_batch[1])
+            torch_input = torch.from_numpy(reshaped_input).float()
+            targets = torch.from_numpy(test_batch[1]).long()
             
             predictions = model(torch_input)
 
