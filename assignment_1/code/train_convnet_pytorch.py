@@ -25,86 +25,135 @@ DATA_DIR_DEFAULT = './cifar10/cifar-10-batches-py'
 FLAGS = None
 
 def accuracy(predictions, targets):
-  """
-  Computes the prediction accuracy, i.e. the average of correct predictions
-  of the network.
+    """
+    Computes the prediction accuracy, i.e. the average of correct predictions
+    of the network.
+    
+    Args:
+      predictions: 2D float array of size [batch_size, n_classes]
+      labels: 2D int array of size [batch_size, n_classes]
+              with one-hot encoding. Ground truth labels for
+              each sample in the batch
+    Returns:
+      accuracy: scalar float, the accuracy of predictions,
+                i.e. the average correct predictions over the whole batch
+    
+    TODO:
+    Implement accuracy computation.
+    """
   
-  Args:
-    predictions: 2D float array of size [batch_size, n_classes]
-    labels: 2D int array of size [batch_size, n_classes]
-            with one-hot encoding. Ground truth labels for
-            each sample in the batch
-  Returns:
-    accuracy: scalar float, the accuracy of predictions,
-              i.e. the average correct predictions over the whole batch
+    ########################
+    # PUT YOUR CODE HERE  #
+    #######################
+    raise NotImplementedError
+    ########################
+    # END OF YOUR CODE    #
+    #######################
   
-  TODO:
-  Implement accuracy computation.
-  """
-
-  ########################
-  # PUT YOUR CODE HERE  #
-  #######################
-  raise NotImplementedError
-  ########################
-  # END OF YOUR CODE    #
-  #######################
-
-  return accuracy
+    return accuracy
 
 def train():
-  """
-  Performs training and evaluation of ConvNet model. 
+    """
+    Performs training and evaluation of ConvNet model. 
+  
+    TODO:
+    Implement training and evaluation of ConvNet model. Evaluate your model on the whole test set each eval_freq iterations.
+    """
+  
+    ### DO NOT CHANGE SEEDS!
+    # Set the random seeds for reproducibility
+    np.random.seed(42)
+  
+    cifar10 = cifar10_utils.get_cifar10(FLAGS.data_dir)
 
-  TODO:
-  Implement training and evaluation of ConvNet model. Evaluate your model on the whole test set each eval_freq iterations.
-  """
+    n_channels = 3
+    n_classes = 10
+    model = ConvNet(n_channels, n_classes)
+    optimizer = optim.Adam(model.parameters(), lr=FLAGS.learning_rate)
+    loss_function = nn.CrossEntropyLoss()
 
-  ### DO NOT CHANGE SEEDS!
-  # Set the random seeds for reproducibility
-  np.random.seed(42)
+    train_accuracies = []
+    test_accuracies = []
 
-  ########################
-  # PUT YOUR CODE HERE  #
-  #######################
-  raise NotImplementedError
-  ########################
-  # END OF YOUR CODE    #
-  #######################
+    for i in range(FLAGS.max_steps):
+        batch = cifar10['train'].next_batch(FLAGS.batch_size)
+        torch_input = torch.from_numpy(batch[0]).float()
+        targets = torch.from_numpy(batch[1]).long()
+
+        model.zero_grad()
+        predictions = model(torch_input)
+        loss = loss_function(predictions, torch.max(targets, 1)[1])
+        loss.backward()
+        optimizer.step()
+
+        if not i % FLAGS.eval_freq:
+            train_acc = accuracy(predictions, targets)
+            train_accuracies.append(train_acc)
+
+            test_batch = cifar10['test'].next_batch(FLAGS.batch_size * 5)
+            torch_input = torch.from_numpy(batch[0]).float()
+            targets = torch.from_numpy(test_batch[1]).long()
+            
+            predictions = model(torch_input)
+
+            test_acc = accuracy(predictions, targets)
+            test_accuracies.append(test_acc)
+
+            print(f"Epoch: {i}, accuracy: {(test_acc * 100):.1f}%")
+
+    train_acc = accuracy(predictions, targets)
+    train_accuracies.append(train_acc)
+
+    test_batch = cifar10['test'].next_batch(FLAGS.batch_size)
+    torch_input = torch.from_numpy(batch[0]).float()
+    targets = torch.from_numpy(test_batch[1]).long()
+
+    predictions = model(torch_input)
+    test_acc = accuracy(predictions, targets)
+    test_accuracies.append(test_acc)
+    print(f"Epoch: {FLAGS.max_steps}, accuracy: {(test_acc * 100):.1f}%")
+
+    train_plot = plt.plot(train_accuracies, label="Train accuracy")
+    test_plot = plt.plot(test_accuracies, label="Test accuracy")
+    plt.legend()
+    plt.title(f"Accuracies of Pytorch ConvNet")
+    plt.savefig("Accuracy_plot_mlp_pytorch.pdf", bbox_inches="tight")
+
+
 
 def print_flags():
-  """
-  Prints all entries in FLAGS variable.
-  """
-  for key, value in vars(FLAGS).items():
-    print(key + ' : ' + str(value))
+    """
+    Prints all entries in FLAGS variable.
+    """
+    for key, value in vars(FLAGS).items():
+        print(key + ' : ' + str(value))
 
 def main():
-  """
-  Main function
-  """
-  # Print all Flags to confirm parameter settings
-  print_flags()
-
-  if not os.path.exists(FLAGS.data_dir):
-    os.makedirs(FLAGS.data_dir)
-
-  # Run the training operation
-  train()
+    """
+    Main function
+    """
+    # Print all Flags to confirm parameter settings
+    print_flags()
+  
+    if not os.path.exists(FLAGS.data_dir):
+        os.makedirs(FLAGS.data_dir)
+  
+    # Run the training operation
+    train()
 
 if __name__ == '__main__':
-  # Command line arguments
-  parser = argparse.ArgumentParser()
-  parser.add_argument('--learning_rate', type = float, default = LEARNING_RATE_DEFAULT,
-                      help='Learning rate')
-  parser.add_argument('--max_steps', type = int, default = MAX_STEPS_DEFAULT,
-                      help='Number of steps to run trainer.')
-  parser.add_argument('--batch_size', type = int, default = BATCH_SIZE_DEFAULT,
-                      help='Batch size to run trainer.')
-  parser.add_argument('--eval_freq', type=int, default=EVAL_FREQ_DEFAULT,
-                        help='Frequency of evaluation on the test set')
-  parser.add_argument('--data_dir', type = str, default = DATA_DIR_DEFAULT,
-                      help='Directory for storing input data')
-  FLAGS, unparsed = parser.parse_known_args()
-
-  main()
+    # Command line arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--learning_rate', type = float, default = LEARNING_RATE_DEFAULT,
+                        help='Learning rate')
+    parser.add_argument('--max_steps', type = int, default = MAX_STEPS_DEFAULT,
+                        help='Number of steps to run trainer.')
+    parser.add_argument('--batch_size', type = int, default = BATCH_SIZE_DEFAULT,
+                        help='Batch size to run trainer.')
+    parser.add_argument('--eval_freq', type=int, default=EVAL_FREQ_DEFAULT,
+                          help='Frequency of evaluation on the test set')
+    parser.add_argument('--data_dir', type = str, default = DATA_DIR_DEFAULT,
+                        help='Directory for storing input data')
+    FLAGS, unparsed = parser.parse_known_args()
+  
+    main()

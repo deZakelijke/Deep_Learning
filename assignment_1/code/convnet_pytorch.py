@@ -67,7 +67,7 @@ class ConvNet(nn.Module):
     ))
 
     self.modules.append(nn.Sequential(
-        nn.Linear(512, 10),
+        nn.Linear(512, n_classes),
         nn.Softmax(dim=1)
     ))
 
