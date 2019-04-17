@@ -43,8 +43,8 @@ def accuracy(predictions, targets):
     TODO:
     Implement accuracy computation.
     """
-    maximums = (predictions == predictions.max(1).reshape(predictions.shape[0], 1)).float()
-    correct = maximumx * targets
+    maximums = (predictions == predictions.max(1)[0].reshape(predictions.shape[0], 1)).float()
+    correct = maximums * targets.float()
     accuracy = correct.sum() / correct.shape[0]
 
     return accuracy
@@ -86,7 +86,7 @@ def train():
 
         model.zero_grad()
         predictions = model(torch_input)
-        loss = loss_function(predictions, targets)
+        loss = loss_function(predictions, torch.max(targets, 1)[1])
         loss.backward()
         optimizer.step()
 
@@ -99,7 +99,7 @@ def train():
             predictions = model(torch_input)
 
             acc = accuracy(predictions, targets)
-            print(f"Epoch: {i}, accuracy: {acc * 100}%")
+            print(f"Epoch: {i}, accuracy: {(acc * 100):.1f}%")
 
 
 
