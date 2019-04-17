@@ -10,6 +10,7 @@ import argparse
 import numpy as np
 import os
 import torch
+import matplotlib.pyplot as plt
 from mlp_pytorch import MLP
 from torch import nn, optim
 import cifar10_utils
@@ -106,15 +107,17 @@ def train():
             test_acc = accuracy(predictions, targets)
             test_accuracies.append(test_acc)
 
-            print(f"Epoch: {i}, accuracy: {(acc * 100):.1f}%")
+            print(f"Epoch: {i}, accuracy: {(test_acc * 100):.1f}%")
 
     train_acc = accuracy(predictions, targets)
     train_accuracies.append(train_acc)
 
     test_batch = cifar10['test'].next_batch(FLAGS.batch_size)
     reshaped_input = test_batch[0].reshape(test_batch[0].shape[0], n_inputs)
-    targets = test_batch[1]
-    predictions = model.forward(reshaped_input)
+    torch_input = torch.from_numpy(reshaped_input).float()
+    targets = torch.from_numpy(test_batch[1]).long()
+
+    predictions = model(torch_input)
     test_acc = accuracy(predictions, targets)
     test_accuracies.append(test_acc)
     print(f"Epoch: {FLAGS.max_steps}, accuracy: {(test_acc * 100):.1f}%")
