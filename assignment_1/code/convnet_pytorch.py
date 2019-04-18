@@ -5,6 +5,7 @@ You should fill in code into indicated sections.
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+from torch import nn
 
 class ConvNet(nn.Module):
   """
@@ -25,53 +26,53 @@ class ConvNet(nn.Module):
     TODO:
     Implement initialization of the network.
     """
-    super(ConvNet, self)__init__()
+    super(ConvNet, self).__init__()
+    modules = []
 
-    self.modules = []
-
-    self.modules.append(nn.Sequential(
-        nn.Conv2D(n_channels, 64, kernel_size=3, stride=1, padding=1),
+    modules.append(nn.Sequential(
+        nn.Conv2d(n_channels, 64, kernel_size=3, stride=1, padding=1),
         nn.ReLU(),
         nn.MaxPool2d(3, stride=2, padding=1)
     ))
 
-    self.modules.append(nn.Sequential(
-        nn.Conv2D(64, 128, kernel_size=3, stride=1, padding=1),
+    modules.append(nn.Sequential(
+        nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
         nn.ReLU(),
         nn.MaxPool2d(3, stride=2, padding=1)
     ))
 
-    self.modules.append(nn.Sequential(
-        nn.Conv2D(128, 256, kernel_size=3, stride=1, padding=1),
+    modules.append(nn.Sequential(
+        nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1),
         nn.ReLU(),
-        nn.Conv2D(256, 256, kernel_size=3, stride=1, padding=1),
-        nn.ReLU(),
-        nn.MaxPool2d(3, stride=2, padding=1)
-    ))
-
-    self.modules.append(nn.Sequential(
-        nn.Conv2D(256, 512, kernel_size=3, stride=1, padding=1),
-        nn.ReLU(),
-        nn.Conv2D(512, 512, kernel_size=3, stride=1, padding=1),
+        nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1),
         nn.ReLU(),
         nn.MaxPool2d(3, stride=2, padding=1)
     ))
 
-    self.modules.append(nn.Sequential(
-        nn.Conv2D(512, 512, kernel_size=3, stride=1, padding=1),
+    modules.append(nn.Sequential(
+        nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1),
         nn.ReLU(),
-        nn.Conv2D(512, 512, kernel_size=3, stride=1, padding=1),
+        nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1),
+        nn.ReLU(),
+        nn.MaxPool2d(3, stride=2, padding=1)
+    ))
+
+    modules.append(nn.Sequential(
+        nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1),
+        nn.ReLU(),
+        nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1),
         nn.ReLU(),
         nn.MaxPool2d(3, stride=2, padding=1),
-        nn.AvgPool2d(1, stride=1, padding=0)
+        nn.AvgPool2d(1, stride=1, padding=0),
     ))
 
-    self.modules.append(nn.Sequential(
+    modules.append(nn.Sequential(
+        Flatten(),
         nn.Linear(512, n_classes),
         nn.Softmax(dim=1)
     ))
 
-    self.modules = nn.Sequential(*self.modules)
+    self.layers = nn.Sequential(*modules)
 
   def forward(self, x):
     """
@@ -86,7 +87,11 @@ class ConvNet(nn.Module):
     TODO:
     Implement forward pass of the network.
     """
-
-    out = self.modules(x)
+    out = self.layers(x)
 
     return out
+
+
+class Flatten(nn.Module):
+    def forward(self, x):
+        return x.view(x.shape[0], -1)

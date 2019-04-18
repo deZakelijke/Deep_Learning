@@ -9,7 +9,9 @@ from __future__ import print_function
 import argparse
 import numpy as np
 import os
+import torch
 from convnet_pytorch import ConvNet
+from torch import nn, optim
 import cifar10_utils
 
 # Default constants
@@ -42,15 +44,12 @@ def accuracy(predictions, targets):
     Implement accuracy computation.
     """
   
-    ########################
-    # PUT YOUR CODE HERE  #
-    #######################
-    raise NotImplementedError
-    ########################
-    # END OF YOUR CODE    #
-    #######################
-  
+    maximums = (predictions == predictions.max(1)[0].reshape(predictions.shape[0], 1)).float()
+    correct = maximums * targets.float()
+    accuracy = correct.sum() / correct.shape[0]
+
     return accuracy
+
 
 def train():
     """
@@ -68,6 +67,7 @@ def train():
 
     n_channels = 3
     n_classes = 10
+    image_size = (32, 32)
     model = ConvNet(n_channels, n_classes)
     optimizer = optim.Adam(model.parameters(), lr=FLAGS.learning_rate)
     loss_function = nn.CrossEntropyLoss()
@@ -77,7 +77,9 @@ def train():
 
     for i in range(FLAGS.max_steps):
         batch = cifar10['train'].next_batch(FLAGS.batch_size)
-        torch_input = torch.from_numpy(batch[0]).float()
+        reshaped_input = batch[0].reshape(batch[0].shape[0], n_channels, *image_size)
+        torch_input = torch.from_numpy(reshaped_input).float()
+
         targets = torch.from_numpy(batch[1]).long()
 
         model.zero_grad()
