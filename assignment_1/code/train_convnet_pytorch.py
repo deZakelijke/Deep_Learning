@@ -10,6 +10,7 @@ import argparse
 import numpy as np
 import os
 import torch
+import matplotlib.pyplot as plt
 from convnet_pytorch import ConvNet
 from torch import nn, optim
 import cifar10_utils
@@ -93,7 +94,7 @@ def train():
             train_accuracies.append(train_acc)
 
             test_batch = cifar10['test'].next_batch(FLAGS.batch_size * 5)
-            torch_input = torch.from_numpy(batch[0]).float()
+            torch_input = torch.from_numpy(test_batch[0]).float()
             targets = torch.from_numpy(test_batch[1]).long()
             
             predictions = model(torch_input)
@@ -119,7 +120,7 @@ def train():
     test_plot = plt.plot(test_accuracies, label="Test accuracy")
     plt.legend()
     plt.title(f"Accuracies of Pytorch ConvNet")
-    plt.savefig("Accuracy_plot_mlp_pytorch.pdf", bbox_inches="tight")
+    plt.savefig("Accuracy_plot_ConvNet_pytorch.pdf", bbox_inches="tight")
 
 
 
