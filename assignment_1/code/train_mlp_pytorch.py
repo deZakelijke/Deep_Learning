@@ -87,6 +87,7 @@ def train():
     ### DO NOT CHANGE SEEDS!
     # Set the random seeds for reproducibility
     np.random.seed(42)
+    torch.manual_seed(42)
   
     ## Prepare all functions
     # Get number of units in each hidden layer specified in the string such as 100,100
@@ -102,8 +103,9 @@ def train():
     n_classes = 10
     testset_size = 10000
     trainset_size = 50000
-    model = MLP(n_inputs, dnn_hidden_units, n_classes)
+    model = MLP(n_inputs, dnn_hidden_units, n_classes, FLAGS.batch_norm)
     optimizer = optim.Adam(model.parameters(), lr=FLAGS.learning_rate)
+    #optimizer = optim.SGD(model.parameters(), lr=FLAGS.learning_rate)
     loss_function = nn.CrossEntropyLoss()
 
     train_accuracies = []
@@ -183,6 +185,8 @@ if __name__ == '__main__':
                           help='Frequency of evaluation on the test set')
     parser.add_argument('--data_dir', type = str, default = DATA_DIR_DEFAULT,
                         help='Directory for storing input data')
+    parser.add_argument('--batch_norm', action='store_true', default=False,
+                        help='Enables batch normalisation')
     FLAGS, unparsed = parser.parse_known_args()
   
     main()

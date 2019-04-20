@@ -14,7 +14,7 @@ class MLP(nn.Module):
   Once initialized an MLP object can perform forward.
   """
 
-  def __init__(self, n_inputs, n_hidden, n_classes):
+  def __init__(self, n_inputs, n_hidden, n_classes, batch_norm=False):
     """
     Initializes MLP object. 
     
@@ -35,12 +35,26 @@ class MLP(nn.Module):
     layers = []
     for i in range(len(n_hidden)):
         if i == 0:
-            new_layer = nn.Sequential(
+            if batch_norm:
+                new_layer = nn.Sequential(
+                    nn.Linear(n_inputs, n_hidden[i]),
+                    nn.BatchNorm1d(n_hidden[i]),
+                    nn.ReLU()
+                    )
+            else:
+                new_layer = nn.Sequential(
                     nn.Linear(n_inputs, n_hidden[i]),
                     nn.ReLU()
                     )
         else:
-            new_layer = nn.Sequential(
+            if batch_norm:
+                new_layer = nn.Sequential(
+                    nn.Linear(n_hidden[i - 1], n_hidden[i]),
+                    nn.BatchNorm1d(n_hidden[i]),
+                    nn.ReLU()
+                    )
+            else:
+                new_layer = nn.Sequential(
                     nn.Linear(n_hidden[i - 1], n_hidden[i]),
                     nn.ReLU()
                     )
@@ -50,6 +64,9 @@ class MLP(nn.Module):
         layers.append(nn.Linear(n_inputs, n_classes))
     else:
         layers.append(nn.Linear(n_hidden[-1], n_classes))
+
+    if batch_norm:
+        layers.append(nn.BatchNorm1d(n_classes))
 
     layers.append(nn.Softmax(dim=1))
     self.layers = nn.Sequential(*layers)
