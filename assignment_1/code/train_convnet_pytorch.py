@@ -51,6 +51,30 @@ def accuracy(predictions, targets):
 
     return accuracy
 
+def get_full_dataset_accuracy(dataset, model, n_inputs, batch_size, total_size):
+    """
+    Caclulates the accuracy over the whole datatset.
+
+    Args:
+        dataset: The test dataset over which the accuracy has to be computed
+        model: The model for which the accuracy has to be computed
+        n_inputs(int): The size of an input vector of model
+        batch_size(int): The size of each batch
+        total_size: The complete size of the dataset
+
+    Returns:
+        accuracy: scalar float, The average accuracy of each batch for the total
+            size of the dataset.
+    """
+    acc = 0
+    for i in range(total_size // batch_size):
+        test_batch = dataset.next_batch(batch_size)
+        torch_input = torch.from_numpy(test_batch[0]).float()
+        targets = torch.from_numpy(test_batch[1]).long()
+        predictions = model(torch_input)
+        acc += accuracy(predictions, targets)
+    acc /= (total_size // batch_size)
+    return acc
 
 def train():
     """
@@ -68,6 +92,8 @@ def train():
 
     n_channels = 3
     n_classes = 10
+    testset_size = 10000
+    trainset_size = 50000
     image_size = (32, 32)
     model = ConvNet(n_channels, n_classes)
     optimizer = optim.Adam(model.parameters(), lr=FLAGS.learning_rate)
@@ -78,8 +104,7 @@ def train():
 
     for i in range(FLAGS.max_steps):
         batch = cifar10['train'].next_batch(FLAGS.batch_size)
-        reshaped_input = batch[0].reshape(batch[0].shape[0], n_channels, *image_size)
-        torch_input = torch.from_numpy(reshaped_input).float()
+        torch_input = torch.from_numpy(batch[0]).float()
 
         targets = torch.from_numpy(batch[1]).long()
 
@@ -90,29 +115,22 @@ def train():
         optimizer.step()
 
         if not i % FLAGS.eval_freq:
-            train_acc = accuracy(predictions, targets)
+            train_acc = get_full_dataset_accuracy(cifar10['train'], model, n_inputs, 
+                                                 FLAGS.batch_size, trainset_size)
             train_accuracies.append(train_acc)
 
-            test_batch = cifar10['test'].next_batch(FLAGS.batch_size * 5)
-            torch_input = torch.from_numpy(test_batch[0]).float()
-            targets = torch.from_numpy(test_batch[1]).long()
-            
-            predictions = model(torch_input)
-
-            test_acc = accuracy(predictions, targets)
+            test_acc = get_full_dataset_accuracy(cifar10['test'], model, n_inputs, 
+                                                 FLAGS.batch_size, testset_size)
             test_accuracies.append(test_acc)
-
             print(f"Epoch: {i}, accuracy: {(test_acc * 100):.1f}%")
 
-    train_acc = accuracy(predictions, targets)
+
+    train_acc = get_full_dataset_accuracy(cifar10['train'], model, n_inputs, 
+                                         FLAGS.batch_size, trainset_size)
     train_accuracies.append(train_acc)
 
-    test_batch = cifar10['test'].next_batch(FLAGS.batch_size)
-    torch_input = torch.from_numpy(batch[0]).float()
-    targets = torch.from_numpy(test_batch[1]).long()
-
-    predictions = model(torch_input)
-    test_acc = accuracy(predictions, targets)
+    test_acc = get_full_dataset_accuracy(cifar10['test'], model, n_inputs, 
+                                         FLAGS.batch_size, testset_size)
     test_accuracies.append(test_acc)
     print(f"Epoch: {FLAGS.max_steps}, accuracy: {(test_acc * 100):.1f}%")
 
