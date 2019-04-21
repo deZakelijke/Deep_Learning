@@ -71,6 +71,10 @@ def get_full_dataset_accuracy(dataset, model, n_inputs, batch_size, total_size):
         test_batch = dataset.next_batch(batch_size)
         torch_input = torch.from_numpy(test_batch[0]).float()
         targets = torch.from_numpy(test_batch[1]).long()
+        if FLAGS.cuda:
+            torch_input = torch_input.cuda()
+            targets = targets.cuda()
+
         predictions = model(torch_input)
         acc += accuracy(predictions, targets)
     acc /= (total_size // batch_size)
@@ -96,6 +100,8 @@ def train():
     trainset_size = 50000
     image_size = (32, 32)
     model = ConvNet(n_channels, n_classes)
+    if FLAGS.cuda:
+        model.cuda()
     optimizer = optim.Adam(model.parameters(), lr=FLAGS.learning_rate)
     loss_function = nn.CrossEntropyLoss()
 
@@ -107,6 +113,9 @@ def train():
         torch_input = torch.from_numpy(batch[0]).float()
 
         targets = torch.from_numpy(batch[1]).long()
+        if FLAGS.cuda:
+            torch_input = torch_input.cuda()
+            targets = targets.cuda()
 
         model.zero_grad()
         predictions = model(torch_input)
@@ -154,6 +163,7 @@ def main():
     Main function
     """
     # Print all Flags to confirm parameter settings
+    FLAGS.cuda = FLAGS.cuda and torch.cuda.is_available():
     print_flags()
   
     if not os.path.exists(FLAGS.data_dir):
@@ -175,6 +185,8 @@ if __name__ == '__main__':
                           help='Frequency of evaluation on the test set')
     parser.add_argument('--data_dir', type = str, default = DATA_DIR_DEFAULT,
                         help='Directory for storing input data')
+    parser.add_argument('--cuda', action='store_true', default=False,
+                        help='Enable GPU use')
     FLAGS, unparsed = parser.parse_known_args()
   
     main()
