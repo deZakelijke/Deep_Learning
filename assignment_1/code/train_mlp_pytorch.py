@@ -7,6 +7,7 @@ from __future__ import division
 from __future__ import print_function
 
 import argparse
+import sys
 import numpy as np
 import os
 import torch
@@ -104,8 +105,14 @@ def train():
     testset_size = 10000
     trainset_size = 50000
     model = MLP(n_inputs, dnn_hidden_units, n_classes, FLAGS.batch_norm)
-    optimizer = optim.Adam(model.parameters(), lr=FLAGS.learning_rate)
-    #optimizer = optim.SGD(model.parameters(), lr=FLAGS.learning_rate)
+    if FLAGS.optim == 'SGD':
+        optimizer = optim.SGD(model.parameters(), lr=FLAGS.learning_rate)
+    elif FLAGS.optim == 'Adam':
+        optimizer = optim.Adam(model.parameters(), lr=FLAGS.learning_rate)
+    else:
+        print('No valif optimizer given. Must be: SGD, Adam')
+        sys.exit(0)
+
     loss_function = nn.CrossEntropyLoss()
 
     train_accuracies = []
@@ -187,6 +194,8 @@ if __name__ == '__main__':
                         help='Directory for storing input data')
     parser.add_argument('--batch_norm', action='store_true', default=False,
                         help='Enables batch normalisation')
+    parser.add_argument('--optim', type=str, default='SGD',
+                        help='The optimizer to use during training (default: SGD)')
     FLAGS, unparsed = parser.parse_known_args()
   
     main()
