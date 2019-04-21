@@ -51,7 +51,7 @@ def accuracy(predictions, targets):
 
     return accuracy
 
-def get_full_dataset_accuracy(dataset, model, n_inputs, batch_size, total_size):
+def get_full_dataset_accuracy(dataset, model, batch_size, total_size):
     """
     Caclulates the accuracy over the whole datatset.
 
@@ -124,21 +124,21 @@ def train():
         optimizer.step()
 
         if not i % FLAGS.eval_freq:
-            train_acc = get_full_dataset_accuracy(cifar10['train'], model, n_inputs, 
+            train_acc = get_full_dataset_accuracy(cifar10['train'], model, 
                                                  FLAGS.batch_size, trainset_size)
             train_accuracies.append(train_acc)
 
-            test_acc = get_full_dataset_accuracy(cifar10['test'], model, n_inputs, 
+            test_acc = get_full_dataset_accuracy(cifar10['test'], model, 
                                                  FLAGS.batch_size, testset_size)
             test_accuracies.append(test_acc)
             print(f"Epoch: {i}, accuracy: {(test_acc * 100):.1f}%")
 
 
-    train_acc = get_full_dataset_accuracy(cifar10['train'], model, n_inputs, 
+    train_acc = get_full_dataset_accuracy(cifar10['train'], model, 
                                          FLAGS.batch_size, trainset_size)
     train_accuracies.append(train_acc)
 
-    test_acc = get_full_dataset_accuracy(cifar10['test'], model, n_inputs, 
+    test_acc = get_full_dataset_accuracy(cifar10['test'], model, 
                                          FLAGS.batch_size, testset_size)
     test_accuracies.append(test_acc)
     print(f"Epoch: {FLAGS.max_steps}, accuracy: {(test_acc * 100):.1f}%")
@@ -163,7 +163,7 @@ def main():
     Main function
     """
     # Print all Flags to confirm parameter settings
-    FLAGS.cuda = FLAGS.cuda and torch.cuda.is_available():
+    FLAGS.cuda = FLAGS.cuda and torch.cuda.is_available()
     print_flags()
   
     if not os.path.exists(FLAGS.data_dir):
