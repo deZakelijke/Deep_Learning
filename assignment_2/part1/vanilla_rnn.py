@@ -47,9 +47,10 @@ class VanillaRNN(nn.Module):
         h = torch.zeros(self.batch_size, self.num_hidden, device=self.device)
 
         for i in range(self.seq_length):
-            tmp = self.fc_hx @ x[:, i].unsqueeze(0)
-            h = self.tanh(tmp + h @ self.fc_hh.t() + self.b_h.unsqueeze(0))
+            tmp = x[:, i].unsqueeze(1) @ self.fc_hx.t()
+            tmp2 = h @ self.fc_hh.t()
+            h = self.tanh(tmp + tmp2 + self.b_h)
 
-        p = h.t() @ self.fc_ph.t() + self.b_p
+        p = h @ self.fc_ph.t() + self.b_p
         y_hat = self.softmax(p)
         return y_hat
