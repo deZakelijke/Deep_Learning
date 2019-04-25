@@ -113,8 +113,9 @@ def train(config):
     print('Done training.')
 
 
- ################################################################################
- ################################################################################
+def print_config(config):
+    for key, value in vars(config).itesm():
+        print(f"{key} : {value}")
 
 if __name__ == "__main__":
 
@@ -135,5 +136,6 @@ if __name__ == "__main__":
 
     config = parser.parse_args()
 
-    # Train the model
+    print_config(config)
+
     train(config)
