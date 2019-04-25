@@ -48,7 +48,7 @@ class VanillaRNN(nn.Module):
 
         for i in range(self.seq_length):
             tmp = self.fc_hx @ x[:, i].unsqueeze(0)
-            h = self.tanh(tmp + h.t() @ self.fc_hh.t() + self.b_h)
+            h = self.tanh(tmp + h @ self.fc_hh.t() + self.b_h.unsqueeze(0))
 
         p = h.t() @ self.fc_ph.t() + self.b_p
         y_hat = self.softmax(p)

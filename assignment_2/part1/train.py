@@ -72,6 +72,9 @@ def train(config):
     optimizer = optim.RMSprop(model.parameters(), lr=config.learning_rate)
 
     for step, (batch_inputs, batch_targets) in enumerate(data_loader):
+        if config.device == 'cuda:0':
+            batch_inputs = batch_inputs.cuda()
+            batch_targets = batch_targets.cuda()
 
         # Only for time measurement of step through network
         t1 = time.time()
