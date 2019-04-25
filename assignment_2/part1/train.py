@@ -36,11 +36,25 @@ from lstm import LSTM
 
 ################################################################################
 
+def compute_single_batch_accuracy(predictions, targets):
+    """
+    Computes the accuracy of a singel batch.
+
+    args:
+        predictions(batch_size, n_classes): Output of the softmax of the RNN
+        targets(batch_size, n_classes): 
+
+    """
+    maximums = predictions.max(1)
+    correct = (maximums[1].float() == targets.float()).float()
+    accuracy = correct.sum() / correct.shape[0]
+    return accuracy
+
+
 def train(config):
 
     assert config.model_type in ('RNN', 'LSTM')
 
-    # Initialize the device which to run the model on
     device = torch.device(config.device)
 
     # Initialize the model that we are going to use
@@ -74,10 +88,9 @@ def train(config):
         ############################################################################
         torch.nn.utils.clip_grad_norm(model.parameters(), max_norm=config.max_norm)
         ############################################################################
-
         optimizer.step()
-        #loss = np.inf   # fixme
-        accuracy = 0.0  # fixme
+
+        accuracy = compute_single_batch_accuracy(predictions, batch_targets)
 
         # Just for time measurement
         t2 = time.time()
