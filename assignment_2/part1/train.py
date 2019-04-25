@@ -25,10 +25,11 @@ import numpy as np
 
 import torch
 from torch.utils.data import DataLoader
+from torch import nn, optim
 
-from part1.dataset import PalindromeDataset
-from part1.vanilla_rnn import VanillaRNN
-from part1.lstm import LSTM
+from dataset import PalindromeDataset
+from vanilla_rnn import VanillaRNN
+from lstm import LSTM
 
 # You may want to look into tensorboardX for logging
 # from tensorboardX import SummaryWriter
@@ -43,32 +44,39 @@ def train(config):
     device = torch.device(config.device)
 
     # Initialize the model that we are going to use
-    model = None  # fixme
+    if config.model_type == 'RNN':
+        model = VanillaRNN(config.input_length, config.input_dim, 
+                           config.num_hidden, config.num_classes,
+                           config.batch_size, device)
 
     # Initialize the dataset and data loader (note the +1)
     dataset = PalindromeDataset(config.input_length+1)
     data_loader = DataLoader(dataset, config.batch_size, num_workers=1)
 
     # Setup the loss and optimizer
-    criterion = None  # fixme
-    optimizer = None  # fixme
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.RMSprop(model.parameters(), lr=config.learning_rate)
 
     for step, (batch_inputs, batch_targets) in enumerate(data_loader):
 
         # Only for time measurement of step through network
         t1 = time.time()
 
-        # Add more code here ...
+        model.zero_grad()
+        predictions = model(batch_inputs)
+        loss = criterion(predictions, batch_targets)
+        loss.backward()
 
         ############################################################################
         # QUESTION: what happens here and why?
+        # Is this part of the assignment or is it just a mental note for us?
+        # TODO
         ############################################################################
         torch.nn.utils.clip_grad_norm(model.parameters(), max_norm=config.max_norm)
         ############################################################################
 
-        # Add more code here ...
-
-        loss = np.inf   # fixme
+        optimizer.step()
+        #loss = np.inf   # fixme
         accuracy = 0.0  # fixme
 
         # Just for time measurement
