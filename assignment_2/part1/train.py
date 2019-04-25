@@ -114,7 +114,7 @@ def train(config):
 
 
 def print_config(config):
-    for key, value in vars(config).itesm():
+    for key, value in vars(config).items():
         print(f"{key} : {value}")
 
 if __name__ == "__main__":

@@ -44,7 +44,7 @@ class VanillaRNN(nn.Module):
         self.softmax = nn.Softmax(1)
 
     def forward(self, x):
-        h = torch.zeros(self.batch_size, self.num_hidden)
+        h = torch.zeros(self.batch_size, self.num_hidden, device=self.device)
 
         for i in range(self.seq_length):
             tmp = self.fc_hx @ x[:, i].unsqueeze(0)
