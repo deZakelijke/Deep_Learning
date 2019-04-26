@@ -63,7 +63,7 @@ def train(config):
         model = VanillaRNN(config.input_length, config.input_dim, 
                            config.num_hidden, config.num_classes,
                            config.batch_size, device)
-    elif config.mode_type == 'LSTM':
+    elif config.model_type == 'LSTM':
         model = LSTM(config.input_length, config.input_dim, 
                      config.num_hidden, config.num_classes,
                      config.batch_size, device)

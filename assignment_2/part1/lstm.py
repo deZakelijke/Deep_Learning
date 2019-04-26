@@ -43,9 +43,9 @@ class LSTM(nn.Module):
         self.fc_ih = nn.Parameter(torch.randn(num_hidden, num_hidden, device=device))
         self.b_i   = nn.Parameter(torch.randn(num_hidden, device=device))
 
-        self.fc_ix = nn.Parameter(torch.randn(num_hidden, input_dim, device=device))
-        self.fc_ih = nn.Parameter(torch.randn(num_hidden, num_hidden, device=device))
-        self.b_i   = nn.Parameter(torch.randn(num_hidden, device=device))
+        self.fc_fx = nn.Parameter(torch.randn(num_hidden, input_dim, device=device))
+        self.fc_fh = nn.Parameter(torch.randn(num_hidden, num_hidden, device=device))
+        self.b_f   = nn.Parameter(torch.randn(num_hidden, device=device))
 
         self.fc_ox = nn.Parameter(torch.randn(num_hidden, input_dim, device=device))
         self.fc_oh = nn.Parameter(torch.randn(num_hidden, num_hidden, device=device))
@@ -62,11 +62,11 @@ class LSTM(nn.Module):
         h = torch.zeros(self.batch_size, self.num_hidden, device=self.device)
         c = torch.zeros(self.batch_size, self.num_hidden, device=self.device)
 
-        for i in range(self.seq_length):
-            g = self.tanh(x[:, i].unsqueeze(1) @ self.fc_gx.t() + h @ self.fc_gh.t() + self.b_g)
-            i = self.sigm(x[:, i].unsqueeze(1) @ self.fc_ix.t() + h @ self.fc_ih.t() + self.b_g)
-            f = self.sigm(x[:, i].unsqueeze(1) @ self.fc_fx.t() + h @ self.fc_fh.t() + self.b_g)
-            o = self.sigm(x[:, i].unsqueeze(1) @ self.fc_ox.t() + h @ self.fc_oh.t() + self.b_g)
+        for j in range(self.seq_length):
+            g = self.tanh(x[:, j].unsqueeze(1) @ self.fc_gx.t() + h @ self.fc_gh.t() + self.b_g)
+            i = self.sigm(x[:, j].unsqueeze(1) @ self.fc_ix.t() + h @ self.fc_ih.t() + self.b_g)
+            f = self.sigm(x[:, j].unsqueeze(1) @ self.fc_fx.t() + h @ self.fc_fh.t() + self.b_g)
+            o = self.sigm(x[:, j].unsqueeze(1) @ self.fc_ox.t() + h @ self.fc_oh.t() + self.b_g)
             c = g * i + c * f
             h = self.tanh(c) * o
 
