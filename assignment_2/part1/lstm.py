@@ -63,7 +63,7 @@ class LSTM(nn.Module):
         c = torch.zeros(self.batch_size, self.num_hidden, device=self.device)
 
         for i in range(self.seq_length):
-            g = self.sigm(x[:, i].unsqueeze(1) @ self.fc_gx.t() + h @ self.fc_gh.t() + self.b_g)
+            g = self.tanh(x[:, i].unsqueeze(1) @ self.fc_gx.t() + h @ self.fc_gh.t() + self.b_g)
             i = self.sigm(x[:, i].unsqueeze(1) @ self.fc_ix.t() + h @ self.fc_ih.t() + self.b_g)
             f = self.sigm(x[:, i].unsqueeze(1) @ self.fc_fx.t() + h @ self.fc_fh.t() + self.b_g)
             o = self.sigm(x[:, i].unsqueeze(1) @ self.fc_ox.t() + h @ self.fc_oh.t() + self.b_g)

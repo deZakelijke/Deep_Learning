@@ -22,6 +22,7 @@ import argparse
 import time
 from datetime import datetime
 import numpy as np
+import matplotlib.pyplot as plt
 
 import torch
 from torch.utils.data import DataLoader
@@ -62,6 +63,12 @@ def train(config):
         model = VanillaRNN(config.input_length, config.input_dim, 
                            config.num_hidden, config.num_classes,
                            config.batch_size, device)
+    elif config.mode_type == 'LSTM':
+        model = LSTM(config.input_length, config.input_dim, 
+                     config.num_hidden, config.num_classes,
+                     config.batch_size, device)
+    else:
+        raise ValueError("Not a valid network architecture, choose RNN or LSTM")
 
     # Initialize the dataset and data loader (note the +1)
     dataset = PalindromeDataset(config.input_length+1)
@@ -70,6 +77,9 @@ def train(config):
     # Setup the loss and optimizer
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.RMSprop(model.parameters(), lr=config.learning_rate)
+
+    accuracies = []
+    tmp_acc = []
 
     for step, (batch_inputs, batch_targets) in enumerate(data_loader):
         if config.device == 'cuda:0':
@@ -84,16 +94,11 @@ def train(config):
         loss = criterion(predictions, batch_targets)
         loss.backward()
 
-        ############################################################################
-        # QUESTION: what happens here and why?
-        # Is this part of the assignment or is it just a mental note for us?
-        # TODO
-        ############################################################################
-        torch.nn.utils.clip_grad_norm(model.parameters(), max_norm=config.max_norm)
-        ############################################################################
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=config.max_norm)
         optimizer.step()
 
         accuracy = compute_single_batch_accuracy(predictions, batch_targets)
+        tmp_acc.append(accuracy)
 
         # Just for time measurement
         t2 = time.time()
@@ -107,6 +112,8 @@ def train(config):
                     config.train_steps, config.batch_size, examples_per_second,
                     accuracy, loss
             ))
+            accuracies.append(sum(tmp_acc) / 10)
+            tmp_acc = []
 
         if step == config.train_steps:
             # If you receive a PyTorch data-loader error, check this bug report:
@@ -114,11 +121,27 @@ def train(config):
             break
 
     print('Done training.')
+    return accuracies
 
 
 def print_config(config):
     for key, value in vars(config).items():
         print(f"{key} : {value}")
+
+def run_experiments(config):
+    n = config.smoothing
+
+    for i in range(config.input_length_steps):
+        print_config(config)
+        accuracies = train(config)
+        accuracies = [sum(accuracies[i:i + n]) / n for i in range(0, len(accuracies), n)]
+        accuracies[-1] *= n
+        plt.plot(accuracies, label=f"Sequence length: {config.input_length}")
+        config.input_length += 1
+
+    plt.legend()
+    plt.title("Accuracy plot for vanilla RNN during training")
+    plt.savefig("Accuracy_plot_vanilla_rnn.pdf", bbox_inches="tight")
 
 if __name__ == "__main__":
 
@@ -136,9 +159,10 @@ if __name__ == "__main__":
     parser.add_argument('--train_steps', type=int, default=10000, help='Number of training steps')
     parser.add_argument('--max_norm', type=float, default=10.0)
     parser.add_argument('--device', type=str, default="cuda:0", help="Training device 'cpu' or 'cuda:0'")
+    parser.add_argument('--input_length_steps', type=int, default=1, help='Number of times the training is rerun with incremented input length')
+    parser.add_argument('--smoothing', type=int, default=5, help="Smoothing factor of accuracy plot")
 
     config = parser.parse_args()
 
-    print_config(config)
+    run_experiments(config)
 
-    train(config)
