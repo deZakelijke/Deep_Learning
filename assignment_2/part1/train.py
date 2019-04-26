@@ -140,8 +140,8 @@ def run_experiments(config):
         config.input_length += 1
 
     plt.legend()
-    plt.title("Accuracy plot for vanilla RNN during training")
-    plt.savefig("Accuracy_plot_vanilla_rnn.pdf", bbox_inches="tight")
+    plt.title(f"Accuracy plot for {config.model_type} during training")
+    plt.savefig(f"Accuracy_plot_{config.model_type}.pdf", bbox_inches="tight")
 
 if __name__ == "__main__":
 
