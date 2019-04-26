@@ -27,8 +27,49 @@ class LSTM(nn.Module):
 
     def __init__(self, seq_length, input_dim, num_hidden, num_classes, batch_size, device='cpu'):
         super(LSTM, self).__init__()
-        # Initialization here ...
+        
+        self.seq_length  = seq_length
+        self.input_dim   = input_dim
+        self.num_hidden  = num_hidden
+        self.num_classes = num_classes
+        self.batch_size  = batch_size
+        self.device      = device
+       
+        self.fc_gx = nn.Parameter(torch.randn(num_hidden, input_dim, device=device))
+        self.fc_gh = nn.Parameter(torch.randn(num_hidden, num_hidden, device=device))
+        self.b_g   = nn.Parameter(torch.randn(num_hidden, device=device))
+
+        self.fc_ix = nn.Parameter(torch.randn(num_hidden, input_dim, device=device))
+        self.fc_ih = nn.Parameter(torch.randn(num_hidden, num_hidden, device=device))
+        self.b_i   = nn.Parameter(torch.randn(num_hidden, device=device))
+
+        self.fc_ix = nn.Parameter(torch.randn(num_hidden, input_dim, device=device))
+        self.fc_ih = nn.Parameter(torch.randn(num_hidden, num_hidden, device=device))
+        self.b_i   = nn.Parameter(torch.randn(num_hidden, device=device))
+
+        self.fc_ox = nn.Parameter(torch.randn(num_hidden, input_dim, device=device))
+        self.fc_oh = nn.Parameter(torch.randn(num_hidden, num_hidden, device=device))
+        self.b_o   = nn.Parameter(torch.randn(num_hidden, device=device))
+
+        self.fc_ph = nn.Parameter(torch.randn(num_classes, num_hidden, device=device))
+        self.b_p   = nn.Parameter(torch.randn(num_classes, device=device))
+
+        self.tanh  = nn.Tanh()
+        self.sigm  = nn.Sigmoid()
+        self.softm = nn.Softmax(1)
 
     def forward(self, x):
-        # Implementation here ...
-        pass
+        h = torch.zeros(self.batch_size, self.num_hidden, device=self.device)
+        c = torch.zeros(self.batch_size, self.num_hidden, device=self.device)
+
+        for i in range(self.seq_length):
+            g = self.sigm(x[:, i].unsqueeze(1) @ self.fc_gx.t() + h @ self.fc_gh.t() + self.b_g)
+            i = self.sigm(x[:, i].unsqueeze(1) @ self.fc_ix.t() + h @ self.fc_ih.t() + self.b_g)
+            f = self.sigm(x[:, i].unsqueeze(1) @ self.fc_fx.t() + h @ self.fc_fh.t() + self.b_g)
+            o = self.sigm(x[:, i].unsqueeze(1) @ self.fc_ox.t() + h @ self.fc_oh.t() + self.b_g)
+            c = g * i + c * f
+            h = self.tanh(c) * o
+
+        p = h @ self.fc_ph.t() + self.b_p
+        y_hat = self.softm(p)
+        return y_hat
