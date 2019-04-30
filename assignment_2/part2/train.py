@@ -26,40 +26,66 @@ import numpy as np
 
 import torch
 import torch.optim as optim
+from torch import nn
 from torch.utils.data import DataLoader
 
-from part2.dataset import TextDataset
-from part2.model import TextGenerationModel
+from dataset import TextDataset
+from model import TextGenerationModel
 
 ################################################################################
+
+def make_one_hot_encoding(batch, vocab_size):
+    batch = torch.stack(batch)
+    size = batch.shape
+    batch = batch.view(-1, 1)
+    one_hot_batch = torch.zeros(size[0] * size[1], vocab_size).scatter_(1, batch, 1)
+    one_hot_batch = one_hot_batch.view(*size, -1)
+    return one_hot_batch
+
+def compute_singe_batch_accuracy(predictions, targets):
+    maximums = predictions.max(2)
+    correct = (maximums[1] == targets).float()
+    accuracy = correct.sum() / (correct.shape[0] * correct.shape[1])
+    return accuracy
 
 def train(config):
 
     # Initialize the device which to run the model on
     device = torch.device(config.device)
 
-    # Initialize the model that we are going to use
-    model = TextGenerationModel( ... )  # fixme
-
     # Initialize the dataset and data loader (note the +1)
-    dataset = TextDataset( ... )  # fixme
-    data_loader = DataLoader(dataset, config.batch_size, num_workers=1)
+    dataset = TextDataset(config.txt_file, config.seq_length)  # fixme
+    data_loader = DataLoader(dataset, config.batch_size, num_workers=0)
+
+    # Initialize the model that we are going to use
+    model = TextGenerationModel(config.batch_size, config.seq_length, 
+                                dataset.vocab_size, config.lstm_num_hidden,
+                                config.lstm_num_layers, config.device)  # fixme
 
     # Setup the loss and optimizer
-    criterion = None  # fixme
-    optimizer = None  # fixme
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.RMSprop(model.parameters(), lr=config.learning_rate)
+    #TODO fix alpha and momentum
 
     for step, (batch_inputs, batch_targets) in enumerate(data_loader):
+        batch_inputs = make_one_hot_encoding(batch_inputs, dataset.vocab_size)
+        batch_targets = torch.stack(batch_targets)
+
+        if config.device == 'cuda:0':
+            batch_input_one_hot = batch_inputs.cuda()
+            batch_targets = batch_targets.cuda()
 
         # Only for time measurement of step through network
         t1 = time.time()
 
-        #######################################################
-        # Add more code here ...
-        #######################################################
+        model.zero_grad()
+        predictions = model(batch_inputs)
 
-        loss = np.inf   # fixme
-        accuracy = 0.0  # fixme
+        loss = criterion(predictions.view(-1, dataset.vocab_size), batch_targets.view(-1))
+        loss.backward()
+        optimizer.step()
+
+        accuracy = compute_singe_batch_accuracy(predictions, batch_targets)
 
         # Just for time measurement
         t2 = time.time()
@@ -88,6 +114,9 @@ def train(config):
 
  ################################################################################
  ################################################################################
+def print_config(config):
+    for key, value in vars(config).items():
+        print(f"{key} : {value}")
 
 if __name__ == "__main__":
 
@@ -116,8 +145,10 @@ if __name__ == "__main__":
     parser.add_argument('--summary_path', type=str, default="./summaries/", help='Output path for summaries')
     parser.add_argument('--print_every', type=int, default=5, help='How often to print training progress')
     parser.add_argument('--sample_every', type=int, default=100, help='How often to sample from the model')
+    parser.add_argument('--device', type=str, default='cuda:0', help='Device to run the model on')
 
     config = parser.parse_args()
 
+    print_config(config)
     # Train the model
     train(config)
