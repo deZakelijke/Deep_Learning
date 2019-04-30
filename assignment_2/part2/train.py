@@ -48,6 +48,19 @@ def compute_singe_batch_accuracy(predictions, targets):
     accuracy = correct.sum() / (correct.shape[0] * correct.shape[1])
     return accuracy
 
+def generate_text_sample(model, seq_length, vocab_size, device):
+    rand_code = torch.randint(vocab_size - 1, (1, 1)).long()
+    input_letter = torch.zeros(1, 1, vocab_size, device=device)
+    input_letter[0, 0, rand_code] = 1
+    encoded_letters = [rand_code[0, 0]]
+
+    for i in range(seq_length):
+        output = model(input_letter)
+        encoded_letters.append(output.argmax())
+        input_letter = torch.zeros(1, 1, vocab_size, device=device)
+        input_letter[0, 0, encoded_letters[-1]] = 1
+    return torch.Tensor(encoded_letters).tolist()
+
 def train(config):
 
     # Initialize the device which to run the model on
@@ -101,8 +114,8 @@ def train(config):
             ))
 
         if step == config.sample_every:
-            # Generate some sentences by sampling from the model
-            pass
+           encoded_letters = generate_text_sample(model, config.seq_length, dataset.vocab_size, device) 
+           print(dataset.convert_to_string(encoded_letters))
 
         if step == config.train_steps:
             # If you receive a PyTorch data-loader error, check this bug report:
