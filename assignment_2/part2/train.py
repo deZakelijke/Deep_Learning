@@ -48,17 +48,21 @@ def compute_singe_batch_accuracy(predictions, targets):
     accuracy = correct.sum() / (correct.shape[0] * correct.shape[1])
     return accuracy
 
-def generate_text_sample(model, seq_length, vocab_size, device):
+def generate_text_sample(model, config, vocab_size, device):
+    seq_length = config.seq_length
+    temperature = config.temp
+
     rand_code = torch.randint(vocab_size - 1, (1, 1)).long()
     input_letter = torch.zeros(1, 1, vocab_size, device=device)
     input_letter[0, 0, rand_code] = 1
     encoded_letters = [rand_code[0, 0]]
 
     for i in range(seq_length):
-        output = model(input_letter)
-        encoded_letters.append(output.argmax())
+        output = model(input_letter, temperature)
+        letter = torch.multinomial(output, 1)
+        encoded_letters.append(letter)
         input_letter = torch.zeros(1, 1, vocab_size, device=device)
-        input_letter[0, 0, encoded_letters[-1]] = 1
+        input_letter[0, 0, letter] = 1
     return torch.Tensor(encoded_letters).tolist()
 
 def train(config):
@@ -113,9 +117,9 @@ def train(config):
                     accuracy, loss
             ))
 
-        if step == config.sample_every:
-           encoded_letters = generate_text_sample(model, config.seq_length, dataset.vocab_size, device) 
-           print(dataset.convert_to_string(encoded_letters))
+        if step % config.sample_every == 0:
+            encoded_letters = generate_text_sample(model, config, dataset.vocab_size, device) 
+            print(dataset.convert_to_string(encoded_letters))
 
         if step == config.train_steps:
             # If you receive a PyTorch data-loader error, check this bug report:
@@ -159,6 +163,7 @@ if __name__ == "__main__":
     parser.add_argument('--print_every', type=int, default=5, help='How often to print training progress')
     parser.add_argument('--sample_every', type=int, default=100, help='How often to sample from the model')
     parser.add_argument('--device', type=str, default='cuda:0', help='Device to run the model on')
+    parser.add_argument('--temp', type=float, default=1.0, help='Temperature used for model sampling.')
 
     config = parser.parse_args()
 
