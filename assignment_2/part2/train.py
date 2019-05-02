@@ -35,6 +35,10 @@ from model import TextGenerationModel
 ################################################################################
 
 def make_one_hot_encoding(batch, vocab_size):
+    """
+        Encode data of a batch in a one-hot fashion.
+
+    """
     batch = torch.stack(batch)
     size = batch.shape
     batch = batch.view(-1, 1)
@@ -43,12 +47,25 @@ def make_one_hot_encoding(batch, vocab_size):
     return one_hot_batch
 
 def compute_singe_batch_accuracy(predictions, targets):
+    """
+        Compute the prediction accuracy of a single batch.
+
+    """
     maximums = predictions.max(2)
     correct = (maximums[1] == targets).float()
     accuracy = correct.sum() / (correct.shape[0] * correct.shape[1])
     return accuracy
 
 def generate_text_sample(model, config, vocab_size, device):
+    """
+        Generate a sample sequence of characters form the model.
+
+    Samples one random letter from the vocabulary and uses that
+    as the first input of the LSTM. By using temperature a character
+    is sampled, based on the output of the softmax layer of the LSTM.
+    The output character of each time step is used as the input 
+    for the next timestep.
+    """
     seq_length = config.seq_length
     temperature = config.temp
 
@@ -71,60 +88,55 @@ def train(config):
     device = torch.device(config.device)
 
     # Initialize the dataset and data loader (note the +1)
-    dataset = TextDataset(config.txt_file, config.seq_length)  # fixme
-    data_loader = DataLoader(dataset, config.batch_size, num_workers=0)
+    dataset = TextDataset(config.txt_file, config.seq_length)
+    data_loader = DataLoader(dataset, config.batch_size, num_workers=0, shuffle=True)
 
     # Initialize the model that we are going to use
     model = TextGenerationModel(config.batch_size, config.seq_length, 
                                 dataset.vocab_size, config.lstm_num_hidden,
-                                config.lstm_num_layers, config.device)  # fixme
+                                config.lstm_num_layers, config.device)
 
     # Setup the loss and optimizer
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.RMSprop(model.parameters(), lr=config.learning_rate)
-    #TODO fix alpha and momentum
 
-    for step, (batch_inputs, batch_targets) in enumerate(data_loader):
-        batch_inputs = make_one_hot_encoding(batch_inputs, dataset.vocab_size)
-        batch_targets = torch.stack(batch_targets)
+    for epoch in range(config.train_steps):
+        for step, (batch_inputs, batch_targets) in enumerate(data_loader):
+            batch_inputs = make_one_hot_encoding(batch_inputs, dataset.vocab_size)
+            batch_targets = torch.stack(batch_targets)
 
-        if config.device == 'cuda:0':
-            batch_inputs = batch_inputs.cuda()
-            batch_targets = batch_targets.cuda()
+            if config.device == 'cuda:0':
+                batch_inputs = batch_inputs.cuda()
+                batch_targets = batch_targets.cuda()
 
-        # Only for time measurement of step through network
-        t1 = time.time()
+            # Only for time measurement of step through network
+            t1 = time.time()
 
-        model.zero_grad()
-        predictions = model(batch_inputs)
+            model.zero_grad()
+            predictions = model(batch_inputs)
 
-        loss = criterion(predictions.view(-1, dataset.vocab_size), batch_targets.view(-1))
-        loss.backward()
-        optimizer.step()
+            loss = criterion(predictions.view(-1, dataset.vocab_size), batch_targets.view(-1))
+            loss.backward()
+            optimizer.step()
 
-        accuracy = compute_singe_batch_accuracy(predictions, batch_targets)
+            accuracy = compute_singe_batch_accuracy(predictions, batch_targets)
 
-        # Just for time measurement
-        t2 = time.time()
-        examples_per_second = config.batch_size/float(t2-t1)
+            # Just for time measurement
+            t2 = time.time()
+            examples_per_second = config.batch_size/float(t2-t1)
 
-        if step % config.print_every == 0:
+            if step % config.print_every == 0:
+                print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M')}] "
+                      f"Train Step {(step + epoch * len(dataset)):04d}/"
+                      f"{(len(dataset) * config.train_steps):04d}, "
+                      f"Batch size = {config.batch_size}, "
+                      f"Examples/Sec = {examples_per_second:.2f}, "
+                      f"Accuracy = {accuracy:.2f}, Loss = {loss:.3f}")
 
-            print("[{}] Train Step {:04d}/{:04d}, Batch Size = {}, Examples/Sec = {:.2f}, "
-                  "Accuracy = {:.2f}, Loss = {:.3f}".format(
-                    datetime.now().strftime("%Y-%m-%d %H:%M"), step,
-                    int(config.train_steps), config.batch_size, examples_per_second,
-                    accuracy, loss
-            ))
+            if step % config.sample_every == 0:
+                encoded_letters = generate_text_sample(model, config, dataset.vocab_size, device) 
+                print(dataset.convert_to_string(encoded_letters))
 
-        if step % config.sample_every == 0:
-            encoded_letters = generate_text_sample(model, config, dataset.vocab_size, device) 
-            print(dataset.convert_to_string(encoded_letters))
-
-        if step == config.train_steps:
-            # If you receive a PyTorch data-loader error, check this bug report:
-            # https://github.com/pytorch/pytorch/pull/9655
-            break
 
     print('Done training.')
 
