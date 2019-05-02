@@ -59,7 +59,7 @@ def generate_text_sample(model, config, vocab_size, device):
 
     for i in range(seq_length):
         output = model(input_letter, temperature)
-        letter = torch.multinomial(output, 1)
+        letter = torch.multinomial(output.view(-1), 1)
         encoded_letters.append(letter)
         input_letter = torch.zeros(1, 1, vocab_size, device=device)
         input_letter[0, 0, letter] = 1
@@ -113,7 +113,7 @@ def train(config):
             print("[{}] Train Step {:04d}/{:04d}, Batch Size = {}, Examples/Sec = {:.2f}, "
                   "Accuracy = {:.2f}, Loss = {:.3f}".format(
                     datetime.now().strftime("%Y-%m-%d %H:%M"), step,
-                    config.train_steps, config.batch_size, examples_per_second,
+                    int(config.train_steps), config.batch_size, examples_per_second,
                     accuracy, loss
             ))
 
