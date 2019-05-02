@@ -74,8 +74,11 @@ def generate_text_sample(model, config, vocab_size, device):
     input_letter[0, 0, rand_code] = 1
     encoded_letters = [rand_code[0, 0]]
 
+    h_n = torch.zeros(config.lstm_num_layers, 1, config.lstm_num_hidden)
+    c_n = torch.zeros(config.lstm_num_layers, 1, config.lstm_num_hidden)
+
     for i in range(seq_length):
-        output = model(input_letter, temperature)
+        output, (h_n, c_n) = model(input_letter, h_n=h_n, c_n=c_n, temperature=temperature)
         letter = torch.multinomial(output.view(-1), 1)
         encoded_letters.append(letter)
         input_letter = torch.zeros(1, 1, vocab_size, device=device)
@@ -100,7 +103,7 @@ def train(config):
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.RMSprop(model.parameters(), lr=config.learning_rate)
 
-    for epoch in range(config.train_steps):
+    for epoch in range(int(config.train_steps)):
         for step, (batch_inputs, batch_targets) in enumerate(data_loader):
             batch_inputs = make_one_hot_encoding(batch_inputs, dataset.vocab_size)
             batch_targets = torch.stack(batch_targets)
@@ -113,7 +116,7 @@ def train(config):
             t1 = time.time()
 
             model.zero_grad()
-            predictions = model(batch_inputs)
+            predictions, _ = model(batch_inputs)
 
             loss = criterion(predictions.view(-1, dataset.vocab_size), batch_targets.view(-1))
             loss.backward()
@@ -128,7 +131,7 @@ def train(config):
             if step % config.print_every == 0:
                 print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M')}] "
                       f"Train Step {(step + epoch * len(dataset)):04d}/"
-                      f"{(len(dataset) * config.train_steps):04d}, "
+                      f"{(int(len(dataset) * config.train_steps)):04d}, "
                       f"Batch size = {config.batch_size}, "
                       f"Examples/Sec = {examples_per_second:.2f}, "
                       f"Accuracy = {accuracy:.2f}, Loss = {loss:.3f}")
