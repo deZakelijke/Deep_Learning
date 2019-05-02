@@ -36,8 +36,8 @@ class TextGenerationModel(nn.Module):
         self.output_map = nn.Linear(lstm_num_hidden, vocabulary_size)
         self.softm = nn.Softmax(2)
 
-    def forward(self, x):
+    def forward(self, x, temperature=1):
         h_n, c_n = self.lstm(x)
-        p = self.output_map(h_n)
+        p = self.output_map(h_n) * (1 / temperature)
         y_hat = self.softm(p)
         return y_hat
