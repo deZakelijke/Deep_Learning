@@ -33,7 +33,7 @@ class TextGenerationModel(nn.Module):
         self.device      = device
 
         self.lstm = nn.LSTM(vocabulary_size, lstm_num_hidden, lstm_num_layers, batch_first=True).to(device)
-        self.output_map = nn.Linear(lstm_num_hidden, vocabulary_size)
+        self.output_map = nn.Linear(lstm_num_hidden, vocabulary_size).to(device)
         self.softm = nn.Softmax(2)
 
     def forward(self, x):
