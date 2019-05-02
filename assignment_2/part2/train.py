@@ -85,7 +85,7 @@ def train(config):
         batch_targets = torch.stack(batch_targets)
 
         if config.device == 'cuda:0':
-            batch_input_one_hot = batch_inputs.cuda()
+            batch_inputs = batch_inputs.cuda()
             batch_targets = batch_targets.cuda()
 
         # Only for time measurement of step through network
