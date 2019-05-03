@@ -74,8 +74,8 @@ def generate_text_sample(model, config, vocab_size, device):
     input_letter[0, 0, rand_code] = 1
     encoded_letters = [rand_code[0, 0]]
 
-    h_n = torch.zeros(config.lstm_num_layers, 1, config.lstm_num_hidden)
-    c_n = torch.zeros(config.lstm_num_layers, 1, config.lstm_num_hidden)
+    h_n = torch.zeros(config.lstm_num_layers, 1, config.lstm_num_hidden).to(device)
+    c_n = torch.zeros(config.lstm_num_layers, 1, config.lstm_num_hidden).to(device)
 
     for i in range(seq_length):
         output, (h_n, c_n) = model(input_letter, h_n=h_n, c_n=c_n, temperature=temperature)
