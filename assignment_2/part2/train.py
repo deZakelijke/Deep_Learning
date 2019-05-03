@@ -142,7 +142,8 @@ def train(config):
 
 
     print('Done training.')
-
+    print('Saving model.')
+    torch.save(model, f"LSTM_txt_{config.txt_file}_temp_{config.temp}.pt")
 
  ################################################################################
  ################################################################################
