@@ -179,7 +179,7 @@ if __name__ == "__main__":
     parser.add_argument('--print_every', type=int, default=5, help='How often to print training progress')
     parser.add_argument('--sample_every', type=int, default=100, help='How often to sample from the model')
     parser.add_argument('--device', type=str, default='cuda:0', help='Device to run the model on')
-    parser.add_argument('--temp', type=float, default=1.0, help='Temperature used for model sampling.')
+    parser.add_argument('--temp', type=float, default=None, help='Temperature used for model sampling.')
 
     config = parser.parse_args()
 

@@ -36,11 +36,15 @@ class TextGenerationModel(nn.Module):
         self.output_map = nn.Linear(lstm_num_hidden, vocabulary_size).to(device)
         self.softm = nn.Softmax(2)
 
-    def forward(self, x, h_n=None, c_n=None, temperature=1):
+    def forward(self, x, h_n=None, c_n=None, temperature=None):
         if h_n is not None and c_n is not None:
            output,  (h_n, c_n) = self.lstm(x, (h_n, c_n))
         else:
             output, (h_n, c_n) = self.lstm(x)
-        p = self.output_map(output) * (1 / temperature)
+
+        if temperature is not None:
+            p = self.output_map(output)
+        else:
+            p = self.output_map(output) * (1 / temperature)
         y_hat = self.softm(p)
         return y_hat, (h_n, c_n)
