@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
 from torchvision.utils import make_grid
-
+from torch.nn.functional import binary_cross_entropy
 from datasets.bmnist import bmnist
 
 
@@ -43,6 +43,7 @@ class Decoder(nn.Module):
         self.fc_1 = nn.Linear(z_dim, hidden_dim)
         self.fc_2 = nn.Linear(hidden_dim, MNIST_SIZE)
         self.tanh = nn.Tanh()
+        self.sigm = nn.Sigmoid()
 
     def forward(self, input):
         """
@@ -51,7 +52,7 @@ class Decoder(nn.Module):
         Returns mean with shape [batch_size, 784].
         """
         h1 = self.tanh(self.fc_1(input))
-        mean = self.fc_2(h1)
+        mean = self.sigm(self.fc_2(h1))
 
         return mean
 
@@ -70,16 +71,22 @@ class VAE(nn.Module):
         Given input, perform an encoding and decoding step and return the
         negative average elbo for the given batch.
         """
-        mu, std = self.Encoder(input)
+        mu, std = self.encoder(input)
         z = self.reparameterize(mu, std)
-        recon_input = self.Decoder(z)
+        recon_input = self.decoder(z)
 
-        average_negative_elbo = None
+        average_negative_elbo = self.calc_average_neg_elbo(recon_input, input, mu, std)
         return average_negative_elbo
+
+    def calc_average_neg_elbo(self, recon_input, input, mu, std):
+        reconstruction_loss = binary_cross_entropy(recon_input, input, reduction='sum')
+        regularizing_loss = 0.5 * torch.sum(mu.pow(2) + std.pow(2) - 1 - std.pow(2).log())
+        return torch.sum(reconstruction_loss - regularizing_loss).div(input.shape[0])
+
 
     def reparameterize(self, mu, std):
         eps = torch.FloatTensor(std.new(std.size()).normal_())
-        return eps.mul(std).add_(mu)
+        return eps.mul(std.pow(2)).add_(mu)
 
     def sample(self, n_samples):
         """
@@ -101,10 +108,18 @@ def epoch_iter(model, data, optimizer):
 
     Returns the average elbo for the complete epoch.
     """
-    average_epoch_elbo = None
-    raise NotImplementedError()
+    average_epoch_elbo = 0
+    for data_sample in data:
+        model.zero_grad()
+        elbo = model(data_sample.view(-1, MNIST_SIZE))
 
-    return average_epoch_elbo
+        if model.training:
+            elbo.backward()
+            optimizer.step()
+
+        average_epoch_elbo += elbo
+
+    return average_epoch_elbo / len(data)
 
 
 def run_epoch(model, data, optimizer):
