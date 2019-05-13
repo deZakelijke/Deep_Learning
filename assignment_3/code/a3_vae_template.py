@@ -17,7 +17,7 @@ class Encoder(nn.Module):
 
         self.fc_1   = nn.Linear(MNIST_SIZE, hidden_dim)
         self.fc_mu  = nn.Linear(hidden_dim, z_dim)
-        self.fc_std = nn.Linear(hidden_dim, z_dim)
+        self.fc_logvar = nn.Linear(hidden_dim, z_dim)
         self.tanh   = nn.Tanh()
 
     def forward(self, input):
@@ -28,11 +28,9 @@ class Encoder(nn.Module):
         that any constraints are enforced.
         """
         h1 = self.tanh(self.fc_1(input))
-
         mean = self.fc_mu(h1)
-        std = self.fc_std(h1)
-
-        return mean, std
+        logvar = self.fc_logvar(h1)
+        return mean, logvar
 
 
 class Decoder(nn.Module):
@@ -47,7 +45,7 @@ class Decoder(nn.Module):
 
     def forward(self, input):
         """
-        Perform forward pass of encoder.
+        Perform forward pass of decoder
 
         Returns mean with shape [batch_size, 784].
         """
@@ -71,22 +69,23 @@ class VAE(nn.Module):
         Given input, perform an encoding and decoding step and return the
         negative average elbo for the given batch.
         """
-        mu, std = self.encoder(input)
-        z = self.reparameterize(mu, std)
+        mu, logvar = self.encoder(input)
+        z = self.reparameterize(mu, logvar)
         recon_input = self.decoder(z)
 
-        average_negative_elbo = self.calc_average_neg_elbo(recon_input, input, mu, std)
+        average_negative_elbo = self.calc_average_neg_elbo(recon_input, input, mu, logvar)
         return average_negative_elbo
 
-    def calc_average_neg_elbo(self, recon_input, input, mu, std):
-        reconstruction_loss = binary_cross_entropy(recon_input, input, reduction='sum')
-        regularizing_loss = 0.5 * torch.sum(mu.pow(2) + std.pow(2) - 1 - std.pow(2).log())
+    def calc_average_neg_elbo(self, recon_input, input, mu, logvar):
+        reconstruction_loss = binary_cross_entropy(recon_input, input, reduction='mean')
+        regularizing_loss = -0.5 * torch.sum(mu.pow(2) + logvar.exp() - 1 - logvar)
         return torch.sum(reconstruction_loss - regularizing_loss).div(input.shape[0])
 
 
-    def reparameterize(self, mu, std):
+    def reparameterize(self, mu, logvar):
+        std = logvar.exp_()
         eps = torch.FloatTensor(std.new(std.size()).normal_())
-        return eps.mul(std.pow(2)).add_(mu)
+        return eps.mul(std).add_(mu)
 
     def sample(self, n_samples):
         """
@@ -149,9 +148,10 @@ def save_elbo_plot(train_curve, val_curve, filename):
 
 
 def main():
+    learning_rate = 1e-4
     data = bmnist()[:2]  # ignore test split
     model = VAE(z_dim=ARGS.zdim)
-    optimizer = torch.optim.Adam(model.parameters())
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
     train_curve, val_curve = [], []
     for epoch in range(ARGS.epochs):
