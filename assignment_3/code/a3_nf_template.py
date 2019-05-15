@@ -15,7 +15,8 @@ def log_prior(x):
     Compute the elementwise log probability of a standard Gaussian, i.e.
     N(x | mu=0, sigma=1).
     """
-    raise NotImplementedError
+    norm_term = torch.log(1 / torch.sqrt(2 * torch.pi))
+    logp = norm_term - 0.5 * x.pow(2)
     return logp
 
 
@@ -23,7 +24,7 @@ def sample_prior(size):
     """
     Sample from a standard Gaussian.
     """
-    raise NotImplementedError
+    sample = torch.normal(std=torch.ones(size))
 
     if torch.cuda.is_available():
         sample = sample.cuda()
@@ -56,13 +57,18 @@ class Coupling(torch.nn.Module):
         # scale variables.
         # Suggestion: Linear ReLU Linear ReLU Linear.
         self.nn = torch.nn.Sequential(
-            None
+            nn.Linear(c_in, n_hidden),
+            nn.ReLU(),
+            nn.Linear(n_hidden, n_hidden),
+            nn.ReLU(),
+            nn.Linear(n_hidden, c_in * 2)
             )
 
         # The nn should be initialized such that the weights of the last layer
         # is zero, so that its initial transform is identity.
         self.nn[-1].weight.data.zero_()
         self.nn[-1].bias.data.zero_()
+        self.tanh = nn.Tanh()
 
     def forward(self, z, ldj, reverse=False):
         # Implement the forward and inverse for an affine coupling layer. Split
@@ -70,14 +76,19 @@ class Coupling(torch.nn.Module):
         # Make sure to account for the log Jacobian determinant (ldj).
         # For reference, check: Density estimation using RealNVP.
 
-        # NOTE: For stability, it is advised to model the scale via:
-        # log_scale = tanh(h), where h is the scale-output
-        # from the NN.
+        network_forward = self.nn(z * self.mask)
+        log_scale, translation = torch.chunk(network_forward, 2, dim=1)
+        log_scale = self.tanh(log_scale)
 
         if not reverse:
-            raise NotImplementedError
+            scale = torch.exp(log_scale)
+            z = self.mask * z + (1 - self.mask) * (z * scale + translation)
+            ldj += log_scale.sum()
         else:
-            raise NotImplementedError
+            scale = torch.exp(-log_scale)
+            tmp1 = z * self.mask
+            tmp2 = ((z - translation) * scale) * (1 - self.mask)
+            z =  tmp1 + tmp2
 
         return z, ldj
 
