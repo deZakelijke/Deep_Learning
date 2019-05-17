@@ -5,6 +5,7 @@ import torch.nn as nn
 import matplotlib.pyplot as plt
 import torch.nn.functional as F
 import numpy as np
+import math
 from datasets.mnist import mnist
 import os
 from torchvision.utils import make_grid
@@ -15,7 +16,7 @@ def log_prior(x):
     Compute the elementwise log probability of a standard Gaussian, i.e.
     N(x | mu=0, sigma=1).
     """
-    norm_term = torch.log(1 / torch.sqrt(2 * torch.pi))
+    norm_term = torch.log(1 / torch.sqrt(torch.Tensor([2 * math.pi])))
     logp = norm_term - 0.5 * x.pow(2)
     return logp
 
@@ -145,8 +146,8 @@ class Model(nn.Module):
 
         else:
             # Inverse normalize
-            logdet += torch.sum(torch.log(z) + torch.log(1-z), dim=1)
             z = torch.sigmoid(z)
+            logdet += torch.sum(torch.log(z) + torch.log(1-z), dim=1)
 
             # Multiply by 256.
             z = z * 256.
@@ -166,9 +167,9 @@ class Model(nn.Module):
 
         z, ldj = self.flow(z, ldj)
 
-        # Compute log_pz and log_px per example
 
-        raise NotImplementedError
+        log_pz = log_prior(z)
+        log_px = (log_pz.t() - ldj).t()
 
         return log_px
 
@@ -180,7 +181,7 @@ class Model(nn.Module):
         z = sample_prior((n_samples,) + self.flow.z_shape)
         ldj = torch.zeros(z.size(0), device=z.device)
 
-        raise NotImplementedError
+        z, ldj = self.flow(z, ldj, reverse=True)
 
         return z
 
@@ -194,9 +195,26 @@ def epoch_iter(model, data, optimizer):
     log_2 likelihood per dimension) averaged over the complete epoch.
     """
 
-    avg_bpd = None
+    avg_bpd = 0
 
-    return avg_bpd
+    for data_sample in data:
+        if torch.cuda.is_available():
+            data = data.cuda()
+        model.zero_grad()
+
+        log_px = model(data_sample[0])
+        temp = torch.sum(log_px)
+        bpd = -torch.log2(temp) / data_sample[0].shape[1]
+
+        avg_bpd += bpd
+
+        if model.training:
+            bpd.backward()
+            optimizer.step()
+        else:
+            pass
+
+    return avg_bpd / len(data)
 
 
 def run_epoch(model, data, optimizer):
