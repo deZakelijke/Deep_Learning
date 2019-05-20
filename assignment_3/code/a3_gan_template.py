@@ -7,6 +7,7 @@ import torchvision.transforms as transforms
 from torchvision.utils import save_image
 from torchvision import datasets
 
+MNIST_SIZE = 748
 
 class Generator(nn.Module):
     def __init__(self):
@@ -27,10 +28,24 @@ class Generator(nn.Module):
         #   LeakyReLU(0.2)
         #   Linear 1024 -> 768
         #   Output non-linearity
+        self.layers = nn.Sequential(
+            nn.Linear(args.latent_dim, 128),
+            nn.LeakyReLU(0.2),
+            nn.Linear(128, 256),
+            nn.BatchNorm1d(256),
+            nn.LeakyReLU(0.2),
+            nn.Linear(256, 512),
+            nn.BatchNorm1d(512),
+            nn.LeakyReLU(0.2),
+            nn.Linear(512, 1024),
+            nn.BatchNorm1d(1024),
+            nn.LeakyReLU(0.2),
+            nn.Linear(1024, MNIST_SIZE),
+            nn.Sigmoid()
+        )
 
     def forward(self, z):
-        # Generate images from z
-        pass
+        return self.layers(z)        
 
 
 class Discriminator(nn.Module):
@@ -45,10 +60,21 @@ class Discriminator(nn.Module):
         #   LeakyReLU(0.2)
         #   Linear 256 -> 1
         #   Output non-linearity
+        self.layers = nn.Sequential(
+            nn.Linear(MNIST_SIZE, 512),
+            nn.LeakyReLU(0.2),
+            nn.Linear(512, 256),
+            nn.LeakyReLU(0.2),
+            nn.Linear(256, 1),
+            nn.Sigmoid()
+        )
 
     def forward(self, img):
-        # return discriminator score for img
-        pass
+        return self.layers(img)
+
+    def set_requires_grad(self, flag):
+        for param in self.parameters():
+            parem.requires_grad = flag
 
 
 def train(dataloader, discriminator, generator, optimizer_G, optimizer_D):
@@ -58,6 +84,11 @@ def train(dataloader, discriminator, generator, optimizer_G, optimizer_D):
             imgs.cuda()
 
             # Train Generator
+            generator.zero_grad()
+            discriminator.set_requres_grad(False)
+            rand_sample = torch.randn((args.batch_size, args.latent_dim))
+            gen_imgs = generator(rand_sample)
+            fake_classification = discriminator(gen_imgs)
             # ---------------
 
             # Train Discriminator
@@ -100,8 +131,7 @@ def main():
     train(dataloader, discriminator, generator, optimizer_G, optimizer_D)
 
     # You can save your generator here to re-use it to generate images for your
-    # report, e.g.:
-    # torch.save(generator.state_dict(), "mnist_generator.pt")
+    torch.save(generator, "GAN-model.pt")
 
 
 if __name__ == "__main__":

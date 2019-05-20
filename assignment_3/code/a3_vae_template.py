@@ -93,7 +93,9 @@ class VAE(nn.Module):
         (from bernoulli) and the means for these bernoullis (as these are
         used to plot the data manifold).
         """
-        z = torch.FloatTensor((n_samples, self.z_dim))
+        z = torch.randn((n_samples, self.z_dim))
+        if torch.cuda.is_available:
+            z = z.cuda()
         im_means = self.Decoder(z)
         sampled_ims = torch.bernoulli(im_means)
 
