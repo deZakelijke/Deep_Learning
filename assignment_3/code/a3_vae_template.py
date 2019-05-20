@@ -173,6 +173,7 @@ def main():
     # --------------------------------------------------------------------
 
     save_elbo_plot(train_curve, val_curve, 'elbo.pdf')
+    torch.save(model, "VAE-model.pt")
 
 
 if __name__ == "__main__":

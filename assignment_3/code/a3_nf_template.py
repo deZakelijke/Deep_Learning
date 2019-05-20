@@ -17,6 +17,9 @@ def log_prior(x):
     N(x | mu=0, sigma=1).
     """
     norm_term = torch.log(1 / torch.sqrt(torch.Tensor([2 * math.pi])))
+    if torch.cuda.is_available():
+        nrom_term = norm_term.cuda()
+
     logp = norm_term - 0.5 * x.pow(2)
     return logp
 
@@ -271,7 +274,7 @@ def main():
         # --------------------------------------------------------------------
 
     save_bpd_plot(train_curve, val_curve, 'nfs_bpd.pdf')
-
+    torch.save(model, "NF-model.pt")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
