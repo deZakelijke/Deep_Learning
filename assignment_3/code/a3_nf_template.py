@@ -199,7 +199,7 @@ def epoch_iter(model, data, optimizer):
 
     for data_sample in data:
         if torch.cuda.is_available():
-            data = data.cuda()
+            data_sample[0] = data_sample[0].cuda()
         model.zero_grad()
 
         log_px = model(data_sample[0])
