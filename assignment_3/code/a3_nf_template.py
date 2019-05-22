@@ -18,7 +18,7 @@ def log_prior(x):
     """
     norm_term = torch.log(1 / torch.sqrt(torch.Tensor([2 * math.pi])))
     if torch.cuda.is_available():
-        nrom_term = norm_term.cuda()
+        norm_term = norm_term.cuda()
 
     logp = norm_term - 0.5 * x.pow(2)
     return logp
