@@ -7,7 +7,7 @@ import torchvision.transforms as transforms
 from torchvision.utils import save_image
 from torchvision import datasets
 
-MNIST_SIZE = 748
+MNIST_SIZE = 784
 
 class Generator(nn.Module):
     def __init__(self):
@@ -74,26 +74,57 @@ class Discriminator(nn.Module):
 
     def set_requires_grad(self, flag):
         for param in self.parameters():
-            parem.requires_grad = flag
+            param.requires_grad = flag
 
 
-def train(dataloader, discriminator, generator, optimizer_G, optimizer_D):
+def train(dataloader, discriminator, generator, optimizer_G, optimizer_D, criterion):
     for epoch in range(args.n_epochs):
+        generator_loss = 0
+        discriminator_loss = 0
         for i, (imgs, _) in enumerate(dataloader):
+            real_label = torch.FloatTensor(1).uniform_(0.7, 1.2)[0]
+            fake_label = torch.FloatTensor(1).uniform_(0.0, 0.3)[0]
+            
+            imgs = imgs.view(-1, MNIST_SIZE)
+            rand_sample = torch.randn((imgs.shape[0], args.latent_dim)).cuda()
+            labels = torch.zeros(imgs.shape[0], requires_grad=False)
 
-            imgs.cuda()
-
-            # Train Generator
-            generator.zero_grad()
-            discriminator.set_requres_grad(False)
-            rand_sample = torch.randn((args.batch_size, args.latent_dim))
+            if torch.cuda.is_available():
+                imgs = imgs.cuda()
+                rand_sample = rand_sample.cuda()
+                labels = labels.cuda()
+                
+            # Train Discriminator
+            optimizer_D.zero_grad()
+            discriminator.set_requires_grad(True)
             gen_imgs = generator(rand_sample)
             fake_classification = discriminator(gen_imgs)
+            labels.fill_(fake_label)
+            loss = criterion(fake_classification, labels)
+            discriminator_loss += loss.item()
+            loss.backward()
+            
+            optimizer_D.zero_grad()
+            real_classification = discriminator(imgs)
+            labels.fill_(real_label)
+            loss = criterion(real_classification, labels)
+            discriminator_loss += loss.item()
+            loss.backward()
+            optimizer_D.step()
+            # -------------------
+
+
+            # Train Generator
+            optimizer_G.zero_grad()
+            discriminator.set_requires_grad(False)
+            gen_imgs = generator(rand_sample)
+            fake_classification = discriminator(gen_imgs)
+            loss = criterion(fake_classification, labels)
+            generator_loss += loss.item()
+            loss.backward()
+            optimizer_G.step()
             # ---------------
 
-            # Train Discriminator
-            # -------------------
-            optimizer_D.zero_grad()
 
             # Save Images
             # -----------
@@ -106,6 +137,9 @@ def train(dataloader, discriminator, generator, optimizer_G, optimizer_D):
                 #            'images/{}.png'.format(batches_done),
                 #            nrow=5, normalize=True)
                 pass
+        print(f"Epoch: {epoch}, \
+               discriminator loss: {(discriminator_loss / len(dataloader)):.3f}, \
+               generator loss: {(generator_loss / len(dataloader)):.3f}")
 
 
 def main():
@@ -117,21 +151,27 @@ def main():
         datasets.MNIST('./data/mnist', train=True, download=True,
                        transform=transforms.Compose([
                            transforms.ToTensor(),
-                           transforms.Normalize((0.5, 0.5, 0.5),
-                                                (0.5, 0.5, 0.5))])),
+                           transforms.Normalize((0.5, ),(0.5, ))
+                           ])),
         batch_size=args.batch_size, shuffle=True)
 
     # Initialize models and optimizers
     generator = Generator()
     discriminator = Discriminator()
+
+    if torch.cuda.is_available():
+        generator.cuda()
+        discriminator.cuda()
+    criterion = nn.BCELoss()
     optimizer_G = torch.optim.Adam(generator.parameters(), lr=args.lr)
     optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=args.lr)
 
     # Start training
-    train(dataloader, discriminator, generator, optimizer_G, optimizer_D)
+    train(dataloader, discriminator, generator, optimizer_G, optimizer_D, criterion)
 
     # You can save your generator here to re-use it to generate images for your
     torch.save(generator, "GAN-model.pt")
+    return generator
 
 
 if __name__ == "__main__":

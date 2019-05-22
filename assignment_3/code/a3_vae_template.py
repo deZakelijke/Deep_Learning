@@ -99,7 +99,7 @@ class VAE(nn.Module):
         im_means = self.Decoder(z)
         sampled_ims = torch.bernoulli(im_means)
 
-        return sampled_ims, im_means
+        return sampled_ims.cpu(), im_means.cpu()
 
 
 def epoch_iter(model, data, optimizer):
