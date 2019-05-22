@@ -10,7 +10,7 @@ from torchvision import datasets
 MNIST_SIZE = 784
 
 class Generator(nn.Module):
-    def __init__(self):
+    def __init__(self, latent_dim):
         super(Generator, self).__init__()
 
         # Construct generator. You are free to experiment with your model,
@@ -29,7 +29,7 @@ class Generator(nn.Module):
         #   Linear 1024 -> 768
         #   Output non-linearity
         self.layers = nn.Sequential(
-            nn.Linear(args.latent_dim, 128),
+            nn.Linear(latent_dim, 128),
             nn.LeakyReLU(0.2),
             nn.Linear(128, 256),
             nn.BatchNorm1d(256),
@@ -133,10 +133,9 @@ def train(dataloader, discriminator, generator, optimizer_G, optimizer_D, criter
                 # You can use the function save_image(Tensor (shape Bx1x28x28),
                 # filename, number of rows, normalize) to save the generated
                 # images, e.g.:
-                # save_image(gen_imgs[:25],
-                #            'images/{}.png'.format(batches_done),
-                #            nrow=5, normalize=True)
-                pass
+                save_image(gen_imgs[:25],
+                           'images/{}.png'.format(batches_done),
+                           nrow=5, normalize=True)
         print(f"Epoch: {epoch}, \
                discriminator loss: {(discriminator_loss / len(dataloader)):.3f}, \
                generator loss: {(generator_loss / len(dataloader)):.3f}")
@@ -156,7 +155,7 @@ def main():
         batch_size=args.batch_size, shuffle=True)
 
     # Initialize models and optimizers
-    generator = Generator()
+    generator = Generator(args.latent_dim)
     discriminator = Discriminator()
 
     if torch.cuda.is_available():

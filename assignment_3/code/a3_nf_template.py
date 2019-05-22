@@ -16,22 +16,17 @@ def log_prior(x):
     Compute the elementwise log probability of a standard Gaussian, i.e.
     N(x | mu=0, sigma=1).
     """
-    norm_term = torch.log(1 / torch.sqrt(torch.Tensor([2 * math.pi])))
-    if torch.cuda.is_available():
-        norm_term = norm_term.cuda()
+    norm_term = torch.log(1 / torch.sqrt(torch.Tensor([2 * math.pi]))).cuda()
 
     logp = norm_term - 0.5 * x.pow(2)
-    return logp
+    return torch.sum(logp, dim=1)
 
 
-def sample_prior(size):
+def sample_prior(size, device):
     """
     Sample from a standard Gaussian.
     """
-    sample = torch.normal(std=torch.ones(size))
-
-    if torch.cuda.is_available():
-        sample = sample.cuda()
+    sample = torch.randn(size).cuda()
 
     return sample
 
@@ -82,17 +77,18 @@ class Coupling(torch.nn.Module):
 
         network_forward = self.nn(z * self.mask)
         log_scale, translation = torch.chunk(network_forward, 2, dim=1)
+        #print("scale", log_scale)
+        #print("trans", translation)
         log_scale = self.tanh(log_scale)
 
         if not reverse:
             scale = torch.exp(log_scale)
             z = self.mask * z + (1 - self.mask) * (z * scale + translation)
-            ldj += log_scale.sum()
+            ldj += torch.sum(log_scale  * (1 - self.mask), dim=1)
         else:
             scale = torch.exp(-log_scale)
-            tmp1 = z * self.mask
-            tmp2 = ((z - translation) * scale) * (1 - self.mask)
-            z =  tmp1 + tmp2
+            z = z * self.mask + ((z - translation) * scale) * (1 - self.mask)
+            ldj = torch.zeros_like(ldj)
 
         return z, ldj
 
@@ -149,9 +145,9 @@ class Model(nn.Module):
 
         else:
             # Inverse normalize
-            z = torch.sigmoid(z)
             logdet += torch.sum(torch.log(z) + torch.log(1-z), dim=1)
-
+            z = torch.sigmoid(z)
+      
             # Multiply by 256.
             z = z * 256.
             logdet += np.log(256) * np.prod(z.size()[1:])
@@ -172,7 +168,7 @@ class Model(nn.Module):
 
 
         log_pz = log_prior(z)
-        log_px = (log_pz.t() - ldj).t()
+        log_px = log_pz + ldj
 
         return log_px
 
@@ -203,21 +199,21 @@ def epoch_iter(model, data, optimizer):
     for data_sample in data:
         if torch.cuda.is_available():
             data_sample[0] = data_sample[0].cuda()
-        model.zero_grad()
+ 
 
         log_px = model(data_sample[0])
-        temp = torch.sum(log_px)
-        bpd = -torch.log2(temp) / data_sample[0].shape[1]
+        loss = -torch.mean(log_px)
 
-        avg_bpd += bpd
+        avg_bpd += loss.item()
 
         if model.training:
-            bpd.backward()
+            model.zero_grad()
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0)
             optimizer.step()
-        else:
-            pass
-
-    return avg_bpd / len(data)
+        
+    avg_bpd = avg_bpd / (len(data) * 784 * math.log(2))
+    return avg_bpd
 
 
 def run_epoch(model, data, optimizer):
@@ -243,7 +239,8 @@ def save_bpd_plot(train_curve, val_curve, filename):
     plt.xlabel('epochs')
     plt.ylabel('bpd')
     plt.tight_layout()
-    plt.savefig(filename)
+    plt.show()
+    #plt.savefig(filename)
 
 
 def main():
@@ -274,7 +271,8 @@ def main():
         # --------------------------------------------------------------------
 
     save_bpd_plot(train_curve, val_curve, 'nfs_bpd.pdf')
-    torch.save(model, "NF-model.pt")
+    return model
+    #torch.save(model, "NF-model.pt")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
