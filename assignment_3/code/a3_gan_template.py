@@ -133,7 +133,7 @@ def train(dataloader, discriminator, generator, optimizer_G, optimizer_D, criter
                 # You can use the function save_image(Tensor (shape Bx1x28x28),
                 # filename, number of rows, normalize) to save the generated
                 # images, e.g.:
-                save_image(gen_imgs[:25],
+                save_image(gen_imgs[:25].view(25, 1, 28, 28),
                            'images/{}.png'.format(batches_done),
                            nrow=5, normalize=True)
         print(f"Epoch: {epoch}, \

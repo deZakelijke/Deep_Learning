@@ -94,7 +94,7 @@ class VAE(nn.Module):
         used to plot the data manifold).
         """
         z = torch.randn((n_samples, self.z_dim))
-        if torch.cuda.is_available:
+        if torch.cuda.is_available():
             z = z.cuda()
         im_means = self.decoder(z)
         sampled_ims = torch.bernoulli(im_means)
