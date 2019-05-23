@@ -22,11 +22,13 @@ def log_prior(x):
     return torch.sum(logp, dim=1)
 
 
-def sample_prior(size, device):
+def sample_prior(size):
     """
     Sample from a standard Gaussian.
     """
-    sample = torch.randn(size).cuda()
+    sample = torch.randn(size)
+    if torch.cuda.is_available():
+        sample = saple.cuda()
 
     return sample
 
@@ -181,6 +183,7 @@ class Model(nn.Module):
         ldj = torch.zeros(z.size(0), device=z.device)
 
         z, ldj = self.flow(z, ldj, reverse=True)
+        z, ldj = self.logit_normalize(z, ldj, reverse=True)
 
         return z
 
