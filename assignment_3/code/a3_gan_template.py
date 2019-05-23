@@ -79,8 +79,8 @@ class Discriminator(nn.Module):
 
 def train(dataloader, discriminator, generator, optimizer_G, optimizer_D, criterion):
     for epoch in range(args.n_epochs):
-        generator_loss = 0
-        discriminator_loss = 0
+        total_generator_loss = 0
+        total_discriminator_loss = 0
         for i, (imgs, _) in enumerate(dataloader):
             real_label = torch.FloatTensor(1).uniform_(0.7, 1.2)[0]
             fake_label = torch.FloatTensor(1).uniform_(0.0, 0.3)[0]
@@ -95,36 +95,34 @@ def train(dataloader, discriminator, generator, optimizer_G, optimizer_D, criter
                 labels = labels.cuda()
                 
             # Train Discriminator
-            optimizer_D.zero_grad()
-            discriminator.set_requires_grad(True)
+            #discriminator.set_requires_grad(True)
             gen_imgs = generator(rand_sample)
             fake_classification = discriminator(gen_imgs)
             labels.fill_(fake_label)
-            loss = criterion(fake_classification, labels)
-            discriminator_loss += loss.item()
-            loss.backward()
+            disc_loss = criterion(fake_classification, labels)
             
-            optimizer_D.zero_grad()
             real_classification = discriminator(imgs)
             labels.fill_(real_label)
-            loss = criterion(real_classification, labels)
-            discriminator_loss += loss.item()
-            loss.backward()
-            optimizer_D.step()
+            disc_loss += criterion(real_classification, labels)
+            total_discriminator_loss += disc_loss.item()
             # -------------------
 
 
             # Train Generator
-            optimizer_G.zero_grad()
-            discriminator.set_requires_grad(False)
+            #discriminator.set_requires_grad(False)
             gen_imgs = generator(rand_sample)
             fake_classification = discriminator(gen_imgs)
-            loss = criterion(fake_classification, labels)
-            generator_loss += loss.item()
-            loss.backward()
-            optimizer_G.step()
+            gen_loss = criterion(fake_classification, labels)
+            total_generator_loss += gen_loss.item()
             # ---------------
 
+            optimizer_G.zero_grad()
+            gen_loss.backward(retain_graph=True)
+            optimizer_G.step()
+
+            disc_loss.backward()
+            optimizer_D.zero_grad()
+            optimizer_D.step()
 
             # Save Images
             # -----------
