@@ -96,7 +96,7 @@ class VAE(nn.Module):
         z = torch.randn((n_samples, self.z_dim))
         if torch.cuda.is_available:
             z = z.cuda()
-        im_means = self.Decoder(z)
+        im_means = self.decoder(z)
         sampled_ims = torch.bernoulli(im_means)
 
         return sampled_ims.cpu(), im_means.cpu()
