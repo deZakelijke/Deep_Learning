@@ -149,7 +149,7 @@ def save_elbo_plot(train_curve, val_curve, filename):
     plt.savefig(filename)
 
 
-def main():
+def main(ARGS):
     learning_rate = 1e-4
     data = bmnist()[:2]  # ignore test split
     model = VAE(z_dim=ARGS.zdim)
@@ -175,7 +175,7 @@ def main():
     # --------------------------------------------------------------------
 
     save_elbo_plot(train_curve, val_curve, 'elbo.pdf')
-    torch.save(model, "VAE-model.pt")
+    torch.save(model, f"VAE-model_{ARGS.z_dim}.pt")
 
 
 if __name__ == "__main__":
@@ -187,4 +187,4 @@ if __name__ == "__main__":
 
     ARGS = parser.parse_args()
 
-    main()
+    main(ARGS)
