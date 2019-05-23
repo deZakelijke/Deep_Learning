@@ -41,7 +41,7 @@ class Generator(nn.Module):
             nn.BatchNorm1d(1024),
             nn.LeakyReLU(0.2),
             nn.Linear(1024, MNIST_SIZE),
-            nn.Sigmoid()
+            nn.Tanh()
         )
 
     def forward(self, z):
@@ -86,8 +86,8 @@ def train(dataloader, discriminator, generator, optimizer_G, optimizer_D, criter
             fake_label = torch.FloatTensor(1).uniform_(0.0, 0.3)[0]
             
             imgs = imgs.view(-1, MNIST_SIZE)
-            rand_sample = torch.randn((imgs.shape[0], args.latent_dim)).cuda()
-            labels = torch.zeros(imgs.shape[0], requires_grad=False)
+            rand_sample = torch.randn((imgs.shape[0], args.latent_dim))
+            labels = torch.ones(imgs.shape[0], requires_grad=False)
 
             if torch.cuda.is_available():
                 imgs = imgs.cuda()
@@ -95,33 +95,22 @@ def train(dataloader, discriminator, generator, optimizer_G, optimizer_D, criter
                 labels = labels.cuda()
                 
             # Train Discriminator
-            #discriminator.set_requires_grad(True)
             gen_imgs = generator(rand_sample)
             fake_classification = discriminator(gen_imgs)
-            labels.fill_(fake_label)
-            disc_loss = criterion(fake_classification, labels)
-            
             real_classification = discriminator(imgs)
-            labels.fill_(real_label)
-            disc_loss += criterion(real_classification, labels)
+
+            disc_loss = criterion(fake_classification, labels * fake_label) + \
+                        criterion(real_classification, labels * real_label)
+            gen_loss = criterion(fake_classification, labels * real_label)
             total_discriminator_loss += disc_loss.item()
-            # -------------------
-
-
-            # Train Generator
-            #discriminator.set_requires_grad(False)
-            gen_imgs = generator(rand_sample)
-            fake_classification = discriminator(gen_imgs)
-            gen_loss = criterion(fake_classification, labels)
             total_generator_loss += gen_loss.item()
-            # ---------------
 
             optimizer_G.zero_grad()
             gen_loss.backward(retain_graph=True)
             optimizer_G.step()
 
-            disc_loss.backward()
             optimizer_D.zero_grad()
+            disc_loss.backward()
             optimizer_D.step()
 
             # Save Images
@@ -135,8 +124,8 @@ def train(dataloader, discriminator, generator, optimizer_G, optimizer_D, criter
                            'images/{}.png'.format(batches_done),
                            nrow=5, normalize=True)
         print(f"Epoch: {epoch}, \
-               discriminator loss: {(discriminator_loss / len(dataloader)):.3f}, \
-               generator loss: {(generator_loss / len(dataloader)):.3f}")
+               discriminator loss: {(total_discriminator_loss / len(dataloader)):.3f}, \
+               generator loss: {(total_generator_loss / len(dataloader)):.3f}")
 
 
 def main():
@@ -167,7 +156,7 @@ def main():
     train(dataloader, discriminator, generator, optimizer_G, optimizer_D, criterion)
 
     # You can save your generator here to re-use it to generate images for your
-    torch.save(generator, "GAN-model_{args.latent_dim}.pt")
+    torch.save(generator, f"GAN-model_{args.latent_dim}.pt")
     #return generator
 
 
