@@ -169,8 +169,8 @@ def main():
     train(dataloader, discriminator, generator, optimizer_G, optimizer_D, criterion)
 
     # You can save your generator here to re-use it to generate images for your
-    torch.save(generator, "GAN-model.pt")
-    return generator
+    torch.save(generator, "GAN-model_{args.latent_dim}.pt")
+    #return generator
 
 
 if __name__ == "__main__":
