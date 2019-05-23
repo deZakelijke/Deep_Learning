@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from torchvision.utils import make_grid
 from torch.nn.functional import binary_cross_entropy
 from datasets.bmnist import bmnist
+from torchvision.utils import save_image
 
 
 MNIST_SIZE = 28 * 28
@@ -16,6 +17,7 @@ class Encoder(nn.Module):
         super().__init__()
 
         self.fc_1   = nn.Linear(MNIST_SIZE, hidden_dim)
+        self.fc_2   = nn.Linear(hidden_dim, hidden_dim)
         self.fc_mu  = nn.Linear(hidden_dim, z_dim)
         self.fc_logvar = nn.Linear(hidden_dim, z_dim)
         self.tanh   = nn.Tanh()
@@ -28,8 +30,9 @@ class Encoder(nn.Module):
         that any constraints are enforced.
         """
         h1 = self.tanh(self.fc_1(input))
-        mean = self.fc_mu(h1)
-        logvar = self.fc_logvar(h1)
+        h2 = self.tanh(self.fc_2(h1))
+        mean = self.fc_mu(h2)
+        logvar = self.fc_logvar(h2)
         return mean, logvar
 
 
@@ -39,7 +42,8 @@ class Decoder(nn.Module):
         super().__init__()
 
         self.fc_1 = nn.Linear(z_dim, hidden_dim)
-        self.fc_2 = nn.Linear(hidden_dim, MNIST_SIZE)
+        self.fc_2 = nn.Linear(hidden_dim, hidden_dim)
+        self.fc_3 = nn.Linear(hidden_dim, MNIST_SIZE)
         self.tanh = nn.Tanh()
         self.sigm = nn.Sigmoid()
 
@@ -50,7 +54,8 @@ class Decoder(nn.Module):
         Returns mean with shape [batch_size, 784].
         """
         h1 = self.tanh(self.fc_1(input))
-        mean = self.sigm(self.fc_2(h1))
+        h2 = self.tanh(self.fc_2(h1))
+        mean = self.sigm(self.fc_3(h2))
 
         return mean
 
@@ -77,14 +82,14 @@ class VAE(nn.Module):
         return average_negative_elbo
 
     def calc_average_neg_elbo(self, recon_input, input, mu, logvar):
-        reconstruction_loss = binary_cross_entropy(recon_input, input, reduction='mean')
-        regularizing_loss = -0.5 * torch.sum(mu.pow(2) + logvar.exp() - 1 - logvar)
-        return torch.sum(reconstruction_loss - regularizing_loss).div(input.shape[0])
+        reconstruction_loss = binary_cross_entropy(recon_input, input, reduction='sum')
+        regularizing_loss = (-0.5 * torch.sum(mu.pow(2) + logvar.exp() - 1 - logvar))
+        return reconstruction_loss - regularizing_loss
 
 
     def reparameterize(self, mu, logvar):
-        std = logvar.exp_()
-        eps = torch.FloatTensor(std.new(std.size()).normal_())
+        std = logvar.mul(0.5).exp_()
+        eps = torch.randn(std.shape)
         return eps.mul(std).add_(mu)
 
     def sample(self, n_samples):
@@ -111,14 +116,22 @@ def epoch_iter(model, data, optimizer):
     """
     average_epoch_elbo = 0
     for data_sample in data:
-        model.zero_grad()
         elbo = model(data_sample.view(-1, MNIST_SIZE))
 
         if model.training:
+            model.zero_grad()
             elbo.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=5.0)
             optimizer.step()
 
-        average_epoch_elbo += elbo
+        average_epoch_elbo += elbo.item()
+
+    img_samples, img_means = model.sample(25)
+    img_samples = img_samples.detach().view(-1, 1, 28, 28)
+    img_means = img_means.detach().view(-1, 1, 28 ,28)
+    save_image(img_samples, "images/VAE_samples.png", nrow=5, normalize=True)
+    save_image(img_means, "images/VAE_means.png", nrow=5, normalize=True)
+
 
     return average_epoch_elbo / len(data)
 
@@ -150,7 +163,7 @@ def save_elbo_plot(train_curve, val_curve, filename):
 
 
 def main(ARGS):
-    learning_rate = 1e-4
+    learning_rate = 1e-3
     data = bmnist()[:2]  # ignore test split
     model = VAE(z_dim=ARGS.zdim)
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
